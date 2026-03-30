@@ -1,14 +1,12 @@
 package ru.it.solutions.suggest.complaint.app.model.enums;
 
-public enum AppealType {
-    COMPLAINT("Жалоба"),
-    SUGGESTION("Предложение"),
-    QUESTION("Вопрос"),
-    REQUEST("Запрос");
+public enum Timeframe {
+    ONE_DAY("1 день"),
+    TWO_DAYS("2 дня");
 
     private final String description;
 
-    AppealType(String description) {
+    Timeframe(String description) {
         this.description = description;
     }
 

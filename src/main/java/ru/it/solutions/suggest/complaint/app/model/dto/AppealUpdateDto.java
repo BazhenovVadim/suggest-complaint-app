@@ -6,16 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.it.solutions.suggest.complaint.app.model.enums.*;
 
-import java.time.Instant;
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppealResponseDto {
+public class AppealUpdateDto {
 
-    private UUID id;
     private AppealType type;
     private LocationType campusLocation;
     private ProblemCategory problemCategory;
@@ -27,6 +23,5 @@ public class AppealResponseDto {
     private String contactPhone;
     private String contactEmail;
     private Boolean personalDataConsent;
-    private Instant createdAt;
     private AppealStatus status;
 }
