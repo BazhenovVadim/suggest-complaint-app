@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SuggestComplaintAppApplication {
+public class AppealCrudApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(SuggestComplaintAppApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(AppealCrudApplication.class, args);
+	}
 
 }
