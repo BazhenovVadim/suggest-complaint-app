@@ -1,12 +1,12 @@
 package ru.it.solutions.suggest.complaint.app.model.entity;
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import ru.it.solutions.suggest.complaint.app.model.enums.*;
 
 import java.time.Instant;
 import java.util.UUID;

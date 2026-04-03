@@ -1,10 +1,10 @@
 package ru.it.solutions.suggest.complaint.app.model.dto;
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.it.solutions.suggest.complaint.app.model.enums.*;
 
 import java.time.Instant;
 import java.util.UUID;
