@@ -1,4 +1,4 @@
-package ru.it.solutions.suggest.complaint.app.model.dto;
+package ru.it.solutions.suggest.complaint.app.model.dto.appeal;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

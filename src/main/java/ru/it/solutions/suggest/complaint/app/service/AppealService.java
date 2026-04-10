@@ -1,8 +1,8 @@
 package ru.it.solutions.suggest.complaint.app.service;
 
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealCreateDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealResponseDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealUpdateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
 import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
 import ru.it.solutions.suggest.complaint.app.model.enums.AppealStatus;
 import ru.it.solutions.suggest.complaint.app.repository.AppealRepository;
