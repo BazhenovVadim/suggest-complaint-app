@@ -1,8 +1,8 @@
 package ru.it.solutions.suggest.complaint.app.model.mappers;
 
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealCreateDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealResponseDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealUpdateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
 import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;

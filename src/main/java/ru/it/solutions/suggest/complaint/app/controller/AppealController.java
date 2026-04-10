@@ -1,8 +1,9 @@
 package ru.it.solutions.suggest.complaint.app.controller;
 
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealCreateDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealResponseDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealUpdateDto;
+
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
 import ru.it.solutions.suggest.complaint.app.service.AppealService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
