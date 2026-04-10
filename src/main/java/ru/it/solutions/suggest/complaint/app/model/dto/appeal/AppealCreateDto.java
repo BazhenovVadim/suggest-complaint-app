@@ -1,15 +1,12 @@
-package ru.it.solutions.suggest.complaint.app.model.dto.appeal;
+package ru.it.solutions.suggest.complaint.app.model.dto.appeal;  // ← правильный пакет
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.it.solutions.suggest.complaint.app.model.enums.AppealType;
-import ru.it.solutions.suggest.complaint.app.model.enums.LocationType;
-import ru.it.solutions.suggest.complaint.app.model.enums.ProblemCategory;
-import ru.it.solutions.suggest.complaint.app.model.enums.Timeframe;
 
 @Data
 @Builder
