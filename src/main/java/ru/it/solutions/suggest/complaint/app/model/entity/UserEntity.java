@@ -3,6 +3,7 @@ package ru.it.solutions.suggest.complaint.app.model.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,15 +30,15 @@ public class UserEntity {
     private String passwordHash;
     private boolean confirmed;
     private Instant createdAt;
-
-    // reset token fields (single-use, time-limited)
     private String resetTokenHash;
     private Instant resetTokenExpiry;
     private Instant lastResetRequestedAt;
-
-    // refresh token (hashed)
     private String refreshTokenHash;
     private Instant refreshTokenExpiry;
+
+    @OneToMany(mappedBy = "user")
+    private List<Appeal> appeals;
+
 
     private UserEntity(UUID id, String email, String passwordHash) {
         this.id = id;
@@ -50,7 +52,7 @@ public class UserEntity {
         return new UserEntity(UUID.randomUUID(), email.toLowerCase(), passwordHash);
     }
 
-    public boolean checkPassword(String rawOrHash, java.util.function.BiPredicate<String,String> verifier) {
+    public boolean checkPassword(String rawOrHash, java.util.function.BiPredicate<String, String> verifier) {
         return verifier.test(rawOrHash, passwordHash);
     }
 
@@ -90,5 +92,7 @@ public class UserEntity {
         return refreshTokenHash.equals(tokenHash);
     }
 
-    public void confirm() { this.confirmed = true; }
+    public void confirm() {
+        this.confirmed = true;
+    }
 }

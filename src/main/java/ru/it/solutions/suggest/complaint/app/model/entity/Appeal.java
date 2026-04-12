@@ -59,4 +59,8 @@ public class Appeal {
     @Column(nullable = false)
     @Builder.Default
     private AppealStatus status = AppealStatus.NEW;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 }

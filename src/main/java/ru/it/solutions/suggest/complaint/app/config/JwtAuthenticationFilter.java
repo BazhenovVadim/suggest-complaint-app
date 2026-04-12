@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.it.solutions.suggest.complaint.app.service.auth.CustomUserDetailsService;
 import ru.it.solutions.suggest.complaint.app.service.auth.JWTService;
 
 import java.io.IOException;
@@ -33,10 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtService.validateToken(token)) {
                 String email = jwtService.extractEmail(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }

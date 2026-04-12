@@ -14,7 +14,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppealResponseDto {
-
     private UUID id;
     private AppealType type;
     private LocationType campusLocation;
@@ -29,4 +28,5 @@ public class AppealResponseDto {
     private Boolean personalDataConsent;
     private Instant createdAt;
     private AppealStatus status;
+    private UUID userId;
 }
