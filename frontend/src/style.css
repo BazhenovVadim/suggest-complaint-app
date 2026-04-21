@@ -1,0 +1,40 @@
+:root {
+    --font-header: "Open Sans", sans-serif;
+    --font-text: "Montserrat", sans-serif;
+    
+    --color-main: #ffffff;
+    --color-main-inverted: #000000;
+    --color-accent: #55be7f;
+    --color-accent-second: #449866;
+
+    --color-font: #666666;
+    --color-font-option: #616161;
+    --color-font-option-selected: #2a7361;
+    --color-border: #cccccc;
+
+    --color-bg-option: #f3f3f3;
+    --color-bg-option-hover: #ebeded;
+    --color-bg-option-selected: #e2efe9;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-text);
+    font-size: 20px;
+    color: var(--color-font);
+    background: var(--color-main);
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+}
+
+@media (min-width: 1200px) {
+    body {
+        font-size: 25px;
+        margin: 0;
+    }
+}
