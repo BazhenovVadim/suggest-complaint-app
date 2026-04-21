@@ -10,10 +10,10 @@
             <column name="id" type="UUID">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="vk_user_id" type="INT">
+            <column name="vk_user_id" type="varchar">
                 <constraints nullable="true" unique="true"/>
             </column>
-            <column name="telegram_user_id" type="INT">
+            <column name="telegram_user_id" type="varchar">
                 <constraints nullable="true" unique="true"/>
             </column>
             <column name="email" type="VARCHAR(255)">

@@ -10,6 +10,9 @@
             <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
+            <column name="appeal_number" type="int">
+                <constraints nullable="true" unique="true"/>
+            </column>
             <column name="user_id" type="UUID"/>
             <column name="type" type="VARCHAR(50)">
                 <constraints nullable="false"/>

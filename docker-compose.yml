@@ -17,9 +17,37 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+#  vk-bot:
+#    build:
+#      context: .
+#      dockerfile: src/main/bot/Dockerfile.bot
+#    container_name: suggest-complaint-vk-bot
+#    depends_on:
+#      - app
+#    command: [ "python", "vk_bot.py" ]
+#    environment:
+#      VK_TOKEN: ${VK_TOKEN}
+#      BACKEND_BASE_URL: http://app:8080
+#    restart: unless-stopped
+#
+#  tg-bot:
+#    build:
+#      context: .
+#      dockerfile: src/main/bot/Dockerfile.bot
+#    container_name: suggest-complaint-tg-bot
+#    depends_on:
+#      - app
+#    command: [ "python", "tg_bot.py" ]
+#    environment:
+#      TG_TOKEN: ${TG_TOKEN}
+#      BACKEND_BASE_URL: http://app:8080
+#    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     container_name: suggest-complaint-db
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: suggest_complaint
       POSTGRES_USER: postgres

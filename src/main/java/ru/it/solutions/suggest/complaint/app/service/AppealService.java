@@ -39,6 +39,7 @@ public class AppealService {
         }
 
         Appeal appeal = appealMapper.toEntity(createDto);
+        appeal.setAppealNumber(appealRepository.getNextAppealNumber());
         appeal.setStatus(AppealStatus.NEW);
         appeal.setUser(user);
         Appeal savedAppeal = appealRepository.save(appeal);

@@ -29,4 +29,5 @@ public class AppealResponseDto {
     private Instant createdAt;
     private AppealStatus status;
     private UUID userId;
+    private Integer appealNumber;
 }

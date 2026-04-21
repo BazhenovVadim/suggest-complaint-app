@@ -5,7 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-import ru.it.solutions.suggest.complaint.app.model.dto.UserResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 
