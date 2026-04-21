@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 public class UserService {
     private final UserRepository userRepository;
 
-    @Value("${app.registration-url:http://localhost:5173/register}")
+    @Value("${app.registration-url:http://localhost:8080/register}")
     private String registrationUrl;
 
     public boolean existsByVkUserId(String vkUserId) {
