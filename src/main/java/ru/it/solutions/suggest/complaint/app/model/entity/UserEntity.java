@@ -24,6 +24,8 @@ import java.util.UUID;
 public class UserEntity {
     @Id
     private UUID id;
+    private int vkUserId;
+    private int telegramUserId;
     @Column(nullable = false, unique = true)
     private String email;
     @Column(nullable = false)
