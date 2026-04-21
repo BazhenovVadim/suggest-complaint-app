@@ -15,4 +15,7 @@ public class UserResponseDto {
     private UUID id;
     private String email;
     private boolean confirmed;
+    private String fullName;
+    private Integer vkUserId;
+    private Integer telegramUserId;
 }

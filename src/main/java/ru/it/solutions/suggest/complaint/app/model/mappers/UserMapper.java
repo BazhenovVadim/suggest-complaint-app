@@ -9,7 +9,7 @@ import ru.it.solutions.suggest.complaint.app.model.dto.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     UserEntity toEntity(RegisterRequest createDto);
