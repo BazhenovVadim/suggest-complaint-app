@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 import ru.it.solutions.suggest.complaint.app.model.mappers.UserMapper;
 import ru.it.solutions.suggest.complaint.app.repository.UserRepository;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -25,6 +27,16 @@ public class UserService {
     public UserResponseDto existsByVkUserId(String vkUserId) {
         return userMapper.toResponseDto(userRepository.findByVkUserId(vkUserId).orElseThrow(() ->
                 new UsernameNotFoundException("user not found")));
+    }
+
+    public UserResponseDto findUserId(UUID Id){
+        return userMapper.toResponseDto(userRepository.findById(Id).orElseThrow(() ->
+                new UsernameNotFoundException("user not found")));
+    }
+
+    public UserEntity getUserById(UUID Id){
+        return userRepository.findById(Id).orElseThrow(() ->
+                new UsernameNotFoundException("user not found"));
     }
 
     public UserResponseDto existsByTelegramUserId(String telegramUserId) {
