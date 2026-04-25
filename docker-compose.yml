@@ -26,8 +26,8 @@ services:
       - app
     environment:
       VK_TOKEN: ${VK_TOKEN}
-      BACKEND_BASE_URL: http://app:8080
-      BACKEND_API_PREFIX: /api
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+      BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
     restart: unless-stopped
 
 #  tg-bot:

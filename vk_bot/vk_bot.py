@@ -398,7 +398,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
     try:
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.get(
-                api_url("/user/check/"),
+                api_url("/user/check"),
                 params={"vkUserId": vk_user_id},
             ) as response:
                 if response.status != 200:

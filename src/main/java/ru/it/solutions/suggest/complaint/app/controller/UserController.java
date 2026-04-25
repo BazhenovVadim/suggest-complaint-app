@@ -28,5 +28,6 @@ public class UserController {
 
         String registrationUrl = exists == null ? null : userService.buildRegistrationLink(vkUserId, tgUserId);
         return ResponseEntity.ok(new UserBotCheckResponseDto(true, registrationUrl, exists));
+        //TODO: возвращать существует или нет, чтобы бот мог понимать что регистрация есть, ан е просто тру возвращать
     }
 }
