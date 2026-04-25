@@ -86,12 +86,26 @@ def is_valid_contact_link(contact: str) -> bool:
 
 load_dotenv()
 TOKEN = os.getenv("VK_TOKEN")
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:9090/api/appeals")
+
+def build_api_base_url() -> str:
+    base_url = os.getenv("BACKEND_BASE_URL", "http://localhost:8080").rstrip("/")
+    api_prefix = os.getenv("BACKEND_API_PREFIX", "/api").strip("/")
+    if api_prefix:
+        return f"{base_url}/{api_prefix}"
+    return base_url
+
+
+API_BASE_URL = build_api_base_url()
+
+
+def api_url(path: str) -> str:
+    return f"{API_BASE_URL}/{path.lstrip('/')}"
 
 if not TOKEN:
     raise ValueError("Токен не найден! Создайте файл .env и добавьте VK_TOKEN=ваш_токен")
 
 bot = Bot(token=TOKEN)
+print("VK_TOKEN =", TOKEN)
 
 class AppealState(BaseStateGroup):
     WAITING_FOR_TYPE = 0
@@ -109,7 +123,7 @@ class AppealState(BaseStateGroup):
 async def send_to_backend(appeal: Appeal):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(BACKEND_URL, json=appeal.to_dict()) as response:
+            async with session.post(api_url("/appeals"), json=appeal.to_dict()) as response:
                 if response.status in [200, 201]: print(f"✅ Успешно отправлено (Статус {response.status})")
                 else: print(f"❌ Ошибка отправки (Статус {response.status}): {await response.text()}")
     except Exception as e:
@@ -369,5 +383,6 @@ async def fallback_handler(message: Message):
         await message.answer("Я бот приема обращений. Для создания нового обращения нажмите «Начать».", keyboard=get_start_kb())
 
 if __name__ == "__main__":
+    print("VK_TOKEN", TOKEN)
     print("Бот 'Предложалоба' запущен!")
     bot.run_forever()
