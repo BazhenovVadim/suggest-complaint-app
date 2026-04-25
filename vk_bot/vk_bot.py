@@ -588,12 +588,32 @@ def get_timeframe_kb():
 
 
 # --- регистрация ---
+verified_users: set[int] = set()
+registration_intro_sent_users: set[int] = set()
+
+
+async def send_registration_intro(message: Message):
+    vk_user_id = get_vk_user_id(message)
+    registration_intro_sent_users.add(vk_user_id)
+
+    registration_url = get_registration_url(vk_user_id)
+
+    text = (
+        "Добро пожаловать в модуль «Предложалоба».\n\n"
+        "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
+        f"Ссылка на регистрацию:\n{registration_url}\n\n"
+        "После регистрации нажмите «Проверить регистрацию»."
+    )
+
+    await message.answer(text, keyboard=get_registration_kb())
+
 
 async def send_registration_required(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_url = get_registration_url(vk_user_id)
 
     text = (
+        "Регистрация не найдена.\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
         f"Ссылка на регистрацию:\n{registration_url}\n\n"
         "После регистрации нажмите «Проверить регистрацию»."
@@ -618,10 +638,21 @@ async def require_registered(message: Message) -> Optional[RegistrationResult]:
         return None
 
     if not result.registered:
+        verified_users.discard(vk_user_id)
         await send_registration_required(message)
         return None
 
+    verified_users.add(vk_user_id)
     return result
+
+
+async def start_appeal_flow(message: Message):
+    await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
+
+    await message.answer(
+        "Регистрация подтверждена.\nВыберите тип обращения:",
+        keyboard=get_type_kb(),
+    )
 
 
 async def process_registration_check(message: Message) -> bool:
@@ -633,20 +664,20 @@ async def process_registration_check(message: Message) -> bool:
         return False
 
     if not result.registered:
+        verified_users.discard(vk_user_id)
         await send_registration_required(message)
         return False
+
+    verified_users.add(vk_user_id)
 
     if message.state_peer:
         await message.answer(
             "Регистрация подтверждена. Продолжайте текущий шаг или нажмите «Отмена».",
             keyboard=get_navigation_kb(),
         )
-    else:
-        await message.answer(
-            "Регистрация подтверждена. Теперь можно создать обращение.",
-            keyboard=get_start_kb(),
-        )
+        return True
 
+    await start_appeal_flow(message)
     return True
 
 
@@ -743,7 +774,7 @@ async def check_registration_handler(message: Message):
     await process_registration_check(message)
 
 
-@bot.on.message(text=[START_BUTTON, "Привет", "Предложалоба"])
+@bot.on.message(text=[START_BUTTON, "Привет", "предложалоба", "Предложалоба"])
 async def start_handler(message: Message):
     if message.state_peer:
         await message.answer(
@@ -752,16 +783,20 @@ async def start_handler(message: Message):
         )
         return
 
-    result = await require_registered(message)
+    vk_user_id = get_vk_user_id(message)
 
-    if result is None:
+    # первое сообщение не проверяет регистрацию через бэк
+    if vk_user_id not in registration_intro_sent_users and vk_user_id not in verified_users:
+        await send_registration_intro(message)
         return
 
-    await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
-    await message.answer(
-        "Добро пожаловать в модуль «Предложалоба».\nВыберите тип обращения:",
-        keyboard=get_type_kb(),
-    )
+    # после подтвержденной регистрации можно сразу начинать
+    if vk_user_id in verified_users:
+        await start_appeal_flow(message)
+        return
+
+    # если приветствие уже показывали, но регистрацию еще не подтвердили
+    await send_registration_intro(message)
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_TYPE)
@@ -784,9 +819,9 @@ async def type_handler(message: Message):
         await process_registration_check(message)
         return
 
-    result = await require_registered(message)
-
-    if result is None:
+    # на этом шаге не дергаем бэк, потому что проверка уже была
+    if get_vk_user_id(message) not in verified_users:
+        await send_registration_intro(message)
         return
 
     if text == AppealType.COMPLAINT.value:
@@ -975,20 +1010,8 @@ async def fallback_handler(message: Message):
         )
         return
 
-    result = await check_user_registration(get_vk_user_id(message))
-
-    if not result.request_ok:
-        await send_registration_error(message)
-        return
-
-    if not result.registered:
-        await send_registration_required(message)
-        return
-
-    await message.answer(
-        "Я бот приема обращений «Предложалоба». Для создания нового обращения нажмите «Начать».",
-        keyboard=get_start_kb(),
-    )
+    # первое произвольное сообщение не должно обращаться к бэку
+    await send_registration_intro(message)
 
 
 if __name__ == "__main__":
