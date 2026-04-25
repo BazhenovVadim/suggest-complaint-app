@@ -93,7 +93,7 @@ TOKEN = os.getenv("VK_TOKEN")
 
 
 def build_api_base_url() -> str:
-    base_url = os.getenv("BACKEND_BASE_URL", "http://localhost:8080").rstrip("/")
+    base_url = os.getenv("BACKEND_BASE_URL", "http://app:8080").rstrip("/")
     api_prefix = os.getenv("BACKEND_API_PREFIX", "/api").strip("/")
 
     if api_prefix:
@@ -106,7 +106,7 @@ API_BASE_URL = build_api_base_url()
 
 SITE_BASE_URL = os.getenv(
     "SITE_BASE_URL",
-    os.getenv("BACKEND_BASE_URL", "http://localhost:8080"),
+    os.getenv("BACKEND_BASE_URL", "http://app:8080"),
 ).rstrip("/")
 
 REGISTRATION_PATH = os.getenv("REGISTRATION_PATH", "/register")

@@ -17,6 +17,17 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: suggest-complaint-frontend
+    depends_on:
+      - app
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
   vk-bot:
     build:
       context: ./vk_bot
