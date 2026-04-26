@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
 from enum import Enum
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from functools import wraps
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
@@ -12,6 +15,73 @@ import aiohttp
 from dotenv import load_dotenv
 from vkbottle.bot import Bot, Message
 from vkbottle import Keyboard, KeyboardButtonColor, Text, BaseStateGroup
+
+
+# --- настройки логирования ---
+
+load_dotenv()
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "y", "да"}
+
+
+LOG_LEVEL_NAME = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.getenv("LOG_FILE", "").strip()
+LOG_SENSITIVE_DATA = env_bool("LOG_SENSITIVE_DATA", False)
+LOG_HTTP_BODIES = env_bool("LOG_HTTP_BODIES", False)
+LOG_ERROR_HTTP_BODIES = env_bool("LOG_ERROR_HTTP_BODIES", True)
+
+
+def setup_logging():
+    log_level = getattr(logging, LOG_LEVEL_NAME, logging.INFO)
+
+    handlers: List[logging.Handler] = [
+        logging.StreamHandler(),
+    ]
+
+    if LOG_FILE:
+        log_path = Path(LOG_FILE)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        handlers.append(
+            RotatingFileHandler(
+                filename=log_path,
+                maxBytes=5_000_000,
+                backupCount=5,
+                encoding="utf-8",
+            )
+        )
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        handlers=handlers,
+        force=True,
+    )
+
+
+setup_logging()
+logger = logging.getLogger("predlozhaloba_bot")
+
+logger.info(
+    "logging_initialized | %s",
+    json.dumps(
+        {
+            "log_level": LOG_LEVEL_NAME,
+            "log_file": LOG_FILE or None,
+            "log_sensitive_data": LOG_SENSITIVE_DATA,
+            "log_http_bodies": LOG_HTTP_BODIES,
+            "log_error_http_bodies": LOG_ERROR_HTTP_BODIES,
+        },
+        ensure_ascii=False,
+    ),
+)
 
 
 # --- модели данных ---
@@ -64,18 +134,43 @@ class Appeal:
     status: AppealStatus = AppealStatus.NEW
 
     def to_dict(self) -> Dict[str, Any]:
-        data = asdict(self)
+        data = {
+            "type": enum_to_backend(self.type),
+            "description": self.description,
+            "personalDataConsent": self.personal_data_consent,
+            "vkUserId": self.vk_user_id,
+            "campusLocation": enum_to_backend(self.campus_location),
+            "problemCategory": enum_to_backend(self.problem_category),
+            "timeframe": self.timeframe,
+            "filePath": self.file_path,
+            "fileName": self.file_name,
+            "contactName": self.contact_name,
+            "contactPhone": self.contact_phone,
+            "contactEmail": self.contact_email,
+        }
 
-        if data.get("id") is None:
-            data.pop("id", None)
+        if self.id is not None:
+            data["id"] = self.id
 
-        for key, value in list(data.items()):
-            if isinstance(value, Enum):
-                data[key] = value.value
-            elif isinstance(value, datetime):
-                data[key] = value.isoformat()
+        if APPEAL_SEND_SERVER_FIELDS:
+            data["createdAt"] = self.created_at.isoformat()
+            data["status"] = enum_to_backend(self.status)
 
-        return data
+        result = {
+            key: value
+            for key, value in data.items()
+            if value is not None
+        }
+
+        log_event(
+            logging.DEBUG,
+            "appeal_serialized",
+            vk_user_id=self.vk_user_id,
+            appeal_type=self.type,
+            payload=safe_payload(result),
+        )
+
+        return result
 
 
 @dataclass
@@ -87,8 +182,6 @@ class RegistrationResult:
 
 # --- настройки ---
 
-load_dotenv()
-
 TOKEN = os.getenv("VK_TOKEN")
 
 
@@ -97,38 +190,88 @@ def build_api_base_url() -> str:
     api_prefix = os.getenv("BACKEND_API_PREFIX", "/api").strip("/")
 
     if api_prefix:
-        return f"{base_url}/{api_prefix}"
+        result = f"{base_url}/{api_prefix}"
+    else:
+        result = base_url
 
-    return base_url
+    logger.info(
+        "api_base_url_built | %s",
+        json.dumps(
+            {
+                "base_url": base_url,
+                "api_prefix": api_prefix,
+                "api_base_url": result,
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+    return result
 
 
 API_BASE_URL = build_api_base_url()
-
-SITE_BASE_URL = os.getenv(
-    "SITE_BASE_URL",
-    os.getenv("BACKEND_BASE_URL", "http://app:8080"),
-).rstrip("/")
-
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:8080").rstrip("/")
 REGISTRATION_PATH = os.getenv("REGISTRATION_PATH", "/register")
-HTTP_TIMEOUT = aiohttp.ClientTimeout(total=float(os.getenv("HTTP_TIMEOUT_SECONDS", "10")))
+
+APPEAL_ENUM_FORMAT = os.getenv("APPEAL_ENUM_FORMAT", "name").strip().lower()
+APPEAL_SEND_SERVER_FIELDS = env_bool("APPEAL_SEND_SERVER_FIELDS", False)
+
+HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "10"))
+HTTP_TIMEOUT = aiohttp.ClientTimeout(total=HTTP_TIMEOUT_SECONDS)
 
 START_BUTTON = "Начать"
 CHECK_REGISTRATION_BUTTON = "Проверить регистрацию"
 BACK_BUTTON = "Назад"
 CANCEL_BUTTON = "Отмена"
 
+logger.info(
+    "configuration_loaded | %s",
+    json.dumps(
+        {
+            "token_configured": bool(TOKEN),
+            "api_base_url": API_BASE_URL,
+            "site_base_url": SITE_BASE_URL,
+            "registration_path": REGISTRATION_PATH,
+            "appeal_enum_format": APPEAL_ENUM_FORMAT,
+            "appeal_send_server_fields": APPEAL_SEND_SERVER_FIELDS,
+            "http_timeout_seconds": HTTP_TIMEOUT_SECONDS,
+        },
+        ensure_ascii=False,
+    ),
+)
+
 if not TOKEN:
+    logger.critical("vk_token_missing")
     raise ValueError("токен не найден. создайте файл .env и добавьте VK_TOKEN=ваш_токен")
 
 bot = Bot(token=TOKEN)
+logger.info("bot_instance_created")
 
 
 def api_url(path: str) -> str:
-    return f"{API_BASE_URL}/{path.lstrip('/')}"
+    result = f"{API_BASE_URL}/{path.lstrip('/')}"
+
+    log_event(
+        logging.DEBUG,
+        "api_url_created",
+        path=path,
+        url=result,
+    )
+
+    return result
 
 
 def site_url(path: str) -> str:
-    return f"{SITE_BASE_URL}/{path.lstrip('/')}"
+    result = f"{SITE_BASE_URL}/{path.lstrip('/')}"
+
+    log_event(
+        logging.DEBUG,
+        "site_url_created",
+        path=path,
+        url=result,
+    )
+
+    return result
 
 
 # --- состояния ---
@@ -171,11 +314,308 @@ VALID_TIMEFRAMES = [
     "Не срочно",
 ]
 
+SENSITIVE_KEYS = {
+    "description",
+    "password",
+    "contact_name",
+    "contactName",
+    "fullName",
+    "full_name",
+    "fio",
+    "name",
+    "displayName",
+    "display_name",
+    "contact_phone",
+    "contactPhone",
+    "phone",
+    "phoneNumber",
+    "phone_number",
+    "contact_email",
+    "contactEmail",
+    "email",
+    "mail",
+    "contact",
+    "contactLink",
+    "contact_link",
+    "telegram",
+    "telegram_username",
+    "telegramUsername",
+    "vk",
+    "vk_link",
+    "vkLink",
+    "file_path",
+    "filePath",
+    "file_name",
+    "fileName",
+    "registrationUrl",
+}
+
+BUTTON_TEXTS = {
+    START_BUTTON,
+    CHECK_REGISTRATION_BUTTON,
+    BACK_BUTTON,
+    CANCEL_BUTTON,
+    AppealType.COMPLAINT.value,
+    AppealType.SUGGESTION.value,
+    LocationType.CAMPUS.value,
+    LocationType.DORMITORY.value,
+    LocationType.EDUCATIONAL_CORPUS.value,
+    ProblemCategory.RESETTLEMENT.value,
+    ProblemCategory.BATHROOM.value,
+    ProblemCategory.ELECTRICITY.value,
+    ProblemCategory.PLUMBING.value,
+    ProblemCategory.OTHER.value,
+    *VALID_TIMEFRAMES,
+}
+
+
+# --- логирующие утилиты ---
+
+def state_name(state: Any) -> str:
+    if state is None:
+        return "none"
+
+    return getattr(state, "name", str(state))
+
+
+def to_log_value(value: Any) -> Any:
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return safe_payload(value)
+
+    if isinstance(value, list):
+        return [to_log_value(item) for item in value]
+
+    if isinstance(value, set):
+        return [to_log_value(item) for item in value]
+
+    if isinstance(value, tuple):
+        return [to_log_value(item) for item in value]
+
+    return value
+
+
+def hidden_value(value: Any) -> str:
+    if value is None:
+        return "<none>"
+
+    if isinstance(value, str):
+        return f"<hidden length={len(value.strip())}>"
+
+    return f"<hidden type={type(value).__name__}>"
+
+
+def safe_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not payload:
+        return {}
+
+    result: Dict[str, Any] = {}
+
+    for key, value in payload.items():
+        if value is None:
+            result[key] = None
+            continue
+
+        if LOG_SENSITIVE_DATA:
+            result[key] = to_log_value(value)
+            continue
+
+        if key in SENSITIVE_KEYS:
+            result[key] = hidden_value(value)
+        else:
+            result[key] = to_log_value(value)
+
+    return result
+
+
+def safe_user_data(user_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not user_data:
+        return {}
+
+    if LOG_SENSITIVE_DATA:
+        return safe_payload(user_data)
+
+    return {
+        "keys": sorted(list(user_data.keys())),
+        "fields_count": len(user_data),
+    }
+
+
+def safe_text(text: Optional[str]) -> Optional[str]:
+    if text is None:
+        return None
+
+    normalized = str(text).strip()
+
+    if LOG_SENSITIVE_DATA:
+        return normalized
+
+    if normalized in BUTTON_TEXTS:
+        return normalized
+
+    return f"<hidden length={len(normalized)}>"
+
+
+def safe_http_body(text: str, force: bool = False) -> str:
+    if force or LOG_HTTP_BODIES or LOG_SENSITIVE_DATA:
+        return text
+
+    return f"<hidden length={len(text)}>"
+
+
+def log_event(level: int, event_name: str, **fields):
+    prepared_fields = {
+        key: to_log_value(value)
+        for key, value in fields.items()
+    }
+
+    if prepared_fields:
+        logger.log(
+            level,
+            "%s | %s",
+            event_name,
+            json.dumps(prepared_fields, ensure_ascii=False, default=str),
+        )
+    else:
+        logger.log(level, event_name)
+
+
+def log_exception(event_name: str, **fields):
+    prepared_fields = {
+        key: to_log_value(value)
+        for key, value in fields.items()
+    }
+
+    logger.exception(
+        "%s | %s",
+        event_name,
+        json.dumps(prepared_fields, ensure_ascii=False, default=str),
+    )
+
+
+def get_state_payload(message: Message) -> Dict[str, Any]:
+    if not message.state_peer:
+        return {}
+
+    return message.state_peer.payload or {}
+
+
+def get_current_state_name(message: Message) -> str:
+    if not message.state_peer:
+        return "none"
+
+    return state_name(message.state_peer.state)
+
+
+def log_handler_entry(handler_name: str, message: Message):
+    log_event(
+        logging.INFO,
+        "handler_enter",
+        handler=handler_name,
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        state=get_current_state_name(message),
+        text=safe_text(message.text),
+        payload=safe_payload(get_state_payload(message)),
+    )
+
+
+async def send_answer(
+    message: Message,
+    text: str,
+    keyboard: Optional[str] = None,
+    event: str = "answer",
+):
+    log_event(
+        logging.INFO,
+        "outgoing_message",
+        answer_event=event,
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        state=get_current_state_name(message),
+        text=safe_text(text),
+        keyboard_attached=keyboard is not None,
+    )
+
+    await message.answer(text, keyboard=keyboard)
+
+
+async def set_state(
+    message: Message,
+    new_state: Any,
+    reason: str,
+    **payload,
+):
+    old_state = get_current_state_name(message)
+
+    log_event(
+        logging.INFO,
+        "state_set_started",
+        reason=reason,
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        old_state=old_state,
+        new_state=state_name(new_state),
+        payload=safe_payload(payload),
+    )
+
+    await bot.state_dispenser.set(message.peer_id, new_state, **payload)
+
+    log_event(
+        logging.DEBUG,
+        "state_set_finished",
+        reason=reason,
+        peer_id=message.peer_id,
+        new_state=state_name(new_state),
+    )
+
+
+async def delete_state(
+    message: Message,
+    reason: str,
+):
+    old_state = get_current_state_name(message)
+    old_payload = safe_payload(get_state_payload(message))
+
+    log_event(
+        logging.INFO,
+        "state_delete_started",
+        reason=reason,
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        old_state=old_state,
+        old_payload=old_payload,
+    )
+
+    await bot.state_dispenser.delete(message.peer_id)
+
+    log_event(
+        logging.DEBUG,
+        "state_delete_finished",
+        reason=reason,
+        peer_id=message.peer_id,
+    )
+
 
 # --- утилиты ---
 
 def get_vk_user_id(message: Message) -> int:
-    return int(message.from_id or message.peer_id)
+    vk_user_id = int(message.from_id or message.peer_id)
+
+    log_event(
+        logging.DEBUG,
+        "vk_user_id_extracted",
+        peer_id=message.peer_id,
+        from_id=message.from_id,
+        vk_user_id=vk_user_id,
+    )
+
+    return vk_user_id
 
 
 def add_query_params(url: str, params: Dict[str, Any]) -> str:
@@ -183,46 +623,150 @@ def add_query_params(url: str, params: Dict[str, Any]) -> str:
     current_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
     current_params.update({key: str(value) for key, value in params.items()})
 
-    return urlunparse(parsed._replace(query=urlencode(current_params)))
+    result = urlunparse(parsed._replace(query=urlencode(current_params)))
+
+    log_event(
+        logging.DEBUG,
+        "query_params_added",
+        original_url=url,
+        params=params,
+        result_url=result if LOG_SENSITIVE_DATA else "<hidden url with query params>",
+    )
+
+    return result
 
 
 def get_registration_url(vk_user_id: int) -> str:
-    return add_query_params(
+    result = add_query_params(
         site_url(REGISTRATION_PATH),
         {"vkUserId": vk_user_id},
     )
 
+    log_event(
+        logging.INFO,
+        "registration_url_created",
+        vk_user_id=vk_user_id,
+        registration_url=result if LOG_SENSITIVE_DATA else site_url(REGISTRATION_PATH),
+    )
+
+    return result
+
+
+def enum_to_backend(value: Optional[Enum]) -> Optional[str]:
+    if value is None:
+        return None
+
+    if APPEAL_ENUM_FORMAT == "value":
+        return value.value
+
+    return value.name
+
 
 def enum_from_payload(enum_cls, value, default):
     if isinstance(value, enum_cls):
+        log_event(
+            logging.DEBUG,
+            "enum_from_payload_already_enum",
+            enum=enum_cls.__name__,
+            value=value,
+        )
         return value
 
     try:
-        return enum_cls(value)
+        result = enum_cls(value)
+
+        log_event(
+            logging.DEBUG,
+            "enum_from_payload_success",
+            enum=enum_cls.__name__,
+            value=value,
+            result=result,
+        )
+
+        return result
+
     except (ValueError, TypeError):
+        if value is not None:
+            log_event(
+                logging.WARNING,
+                "enum_from_payload_failed",
+                enum=enum_cls.__name__,
+                value=value,
+                default=default,
+            )
+        else:
+            log_event(
+                logging.DEBUG,
+                "enum_from_payload_default_used_for_none",
+                enum=enum_cls.__name__,
+                default=default,
+            )
+
         return default
 
 
 def get_categories_for_location(location: LocationType) -> List[ProblemCategory]:
-    return LOCATION_CATEGORIES.get(location, [ProblemCategory.OTHER])
+    categories = LOCATION_CATEGORIES.get(location, [ProblemCategory.OTHER])
+
+    log_event(
+        logging.DEBUG,
+        "categories_for_location_resolved",
+        location=location,
+        categories=categories,
+    )
+
+    return categories
 
 
 def is_valid_description(text: Optional[str]) -> bool:
-    return bool(text and len(text.strip()) >= 5)
+    result = bool(text and len(text.strip()) >= 5)
+
+    log_event(
+        logging.DEBUG,
+        "description_validated",
+        length=len(text.strip()) if text else 0,
+        valid=result,
+    )
+
+    return result
 
 
 def normalize_bool(value: Any) -> Optional[bool]:
     if isinstance(value, bool):
+        log_event(
+            logging.DEBUG,
+            "bool_normalized",
+            original_type=type(value).__name__,
+            result=value,
+        )
         return value
 
     if isinstance(value, str):
         normalized = value.strip().lower()
 
         if normalized in {"true", "1", "yes", "y", "да"}:
+            log_event(
+                logging.DEBUG,
+                "bool_normalized",
+                original_type=type(value).__name__,
+                result=True,
+            )
             return True
 
         if normalized in {"false", "0", "no", "n", "нет"}:
+            log_event(
+                logging.DEBUG,
+                "bool_normalized",
+                original_type=type(value).__name__,
+                result=False,
+            )
             return False
+
+    log_event(
+        logging.DEBUG,
+        "bool_normalization_failed",
+        original_type=type(value).__name__,
+    )
 
     return None
 
@@ -232,31 +776,77 @@ def get_first_present(data: Dict[str, Any], *keys: str) -> Optional[str]:
         value = data.get(key)
 
         if value not in (None, ""):
-            return str(value).strip()
+            result = str(value).strip()
+
+            log_event(
+                logging.DEBUG,
+                "first_present_found",
+                key=key,
+                value=hidden_value(result) if not LOG_SENSITIVE_DATA else result,
+            )
+
+            return result
+
+    log_event(
+        logging.DEBUG,
+        "first_present_not_found",
+        checked_keys=list(keys),
+    )
 
     return None
 
 
 def unwrap_user_data(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(data, dict):
+        log_event(
+            logging.WARNING,
+            "user_data_unwrap_failed",
+            data_type=type(data).__name__,
+        )
         return {}
 
-    for key in ("user", "data", "profile"):
+    for key in ("userResponseDto", "user_response_dto", "user", "data", "profile"):
         value = data.get(key)
 
         if isinstance(value, dict):
+            log_event(
+                logging.DEBUG,
+                "user_data_unwrapped",
+                wrapper_key=key,
+                user_data=safe_user_data(value),
+            )
             return value
+
+    log_event(
+        logging.DEBUG,
+        "user_data_used_without_unwrap",
+        user_data=safe_user_data(data),
+    )
 
     return data
 
 
 def get_registration_flag_from_dict(data: Dict[str, Any]) -> Optional[bool]:
-    for key in ("registered", "isRegistered", "exists", "success"):
+    for key in ("exists", "registered", "isRegistered", "success"):
         if key in data:
             parsed = normalize_bool(data.get(key))
 
+            log_event(
+                logging.DEBUG,
+                "registration_flag_checked",
+                key=key,
+                raw_value=data.get(key),
+                parsed=parsed,
+            )
+
             if parsed is not None:
                 return parsed
+
+    log_event(
+        logging.DEBUG,
+        "registration_flag_not_found",
+        keys=list(data.keys()),
+    )
 
     return None
 
@@ -275,6 +865,11 @@ def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
     )
 
     if explicit_name:
+        log_event(
+            logging.DEBUG,
+            "full_name_resolved_from_explicit_field",
+            value=hidden_value(explicit_name) if not LOG_SENSITIVE_DATA else explicit_name,
+        )
         return explicit_name
 
     name_parts = [
@@ -284,6 +879,15 @@ def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
     ]
 
     full_name = " ".join(str(part).strip() for part in name_parts if part)
+
+    log_event(
+        logging.DEBUG,
+        "full_name_built_from_parts",
+        has_last_name=bool(name_parts[0]),
+        has_first_name=bool(name_parts[1]),
+        has_middle_name=bool(name_parts[2]),
+        result=hidden_value(full_name) if full_name and not LOG_SENSITIVE_DATA else full_name,
+    )
 
     return full_name or None
 
@@ -323,7 +927,7 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
         "vkLink",
     )
 
-    return {
+    result = {
         "contact_name": build_full_name(user_data),
         "contact_phone": get_first_present(
             user_data,
@@ -337,42 +941,110 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
         "personal_data_consent": consent,
     }
 
+    log_event(
+        logging.INFO,
+        "user_contact_fields_resolved",
+        fields=safe_payload(result),
+        source_user_data=safe_user_data(user_data),
+    )
+
+    return result
+
 
 # --- api ---
 
 async def read_response_payload(response: aiohttp.ClientResponse) -> Any:
     text = (await response.text()).strip()
 
+    log_event(
+        logging.DEBUG,
+        "api_response_body_read",
+        status=response.status,
+        content_type=response.headers.get("Content-Type"),
+        body=safe_http_body(text),
+        body_length=len(text),
+    )
+
     if not text:
+        log_event(
+            logging.DEBUG,
+            "api_response_body_empty",
+            status=response.status,
+        )
         return None
 
     parsed_bool = normalize_bool(text)
 
     if parsed_bool is not None:
+        log_event(
+            logging.DEBUG,
+            "api_response_parsed_as_bool",
+            result=parsed_bool,
+        )
         return parsed_bool
 
     try:
-        return json.loads(text)
+        payload = json.loads(text)
+
+        log_event(
+            logging.DEBUG,
+            "api_response_parsed_as_json",
+            payload_type=type(payload).__name__,
+            payload=safe_payload(payload) if isinstance(payload, dict) else payload,
+        )
+
+        return payload
+
     except json.JSONDecodeError:
+        log_event(
+            logging.WARNING,
+            "api_response_json_parse_failed",
+            body=safe_http_body(text, force=LOG_ERROR_HTTP_BODIES),
+        )
         return text
 
 
 def parse_registration_payload(payload: Any) -> RegistrationResult:
+    log_event(
+        logging.DEBUG,
+        "registration_payload_parse_started",
+        payload_type=type(payload).__name__,
+        payload=safe_payload(payload) if isinstance(payload, dict) else payload,
+    )
+
     if isinstance(payload, bool):
-        return RegistrationResult(
+        result = RegistrationResult(
             request_ok=True,
             registered=payload,
             data={},
         )
 
+        log_event(
+            logging.INFO,
+            "registration_payload_parsed",
+            registered=result.registered,
+            data=safe_user_data(result.data),
+        )
+
+        return result
+
     if isinstance(payload, str):
         parsed = normalize_bool(payload)
 
-        return RegistrationResult(
+        result = RegistrationResult(
             request_ok=True,
             registered=bool(parsed),
             data={},
         )
+
+        log_event(
+            logging.INFO,
+            "registration_payload_parsed",
+            registered=result.registered,
+            data=safe_user_data(result.data),
+        )
+
+        return result
 
     if isinstance(payload, dict):
         registered = get_registration_flag_from_dict(payload)
@@ -381,28 +1053,72 @@ def parse_registration_payload(payload: Any) -> RegistrationResult:
         if registered is None:
             registered = bool(user_data)
 
-        return RegistrationResult(
+        result = RegistrationResult(
             request_ok=True,
             registered=registered,
             data=user_data if registered else {},
         )
 
-    return RegistrationResult(
+        log_event(
+            logging.INFO,
+            "registration_payload_parsed",
+            registered=result.registered,
+            data=safe_user_data(result.data),
+        )
+
+        return result
+
+    result = RegistrationResult(
         request_ok=True,
         registered=False,
         data={},
     )
 
+    log_event(
+        logging.WARNING,
+        "registration_payload_unknown_type",
+        payload_type=type(payload).__name__,
+        registered=result.registered,
+    )
+
+    return result
+
 
 async def check_user_registration(vk_user_id: int) -> RegistrationResult:
+    url = api_url("/user/check")
+
+    log_event(
+        logging.INFO,
+        "registration_check_started",
+        vk_user_id=vk_user_id,
+        url=url,
+    )
+
     try:
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.get(
-                api_url("/user/check"),
+                url,
                 params={"vkUserId": vk_user_id},
             ) as response:
+                log_event(
+                    logging.INFO,
+                    "registration_check_response_received",
+                    vk_user_id=vk_user_id,
+                    status=response.status,
+                    content_type=response.headers.get("Content-Type"),
+                )
+
                 if response.status != 200:
-                    print(f"ошибка проверки регистрации: статус {response.status}")
+                    error_text = await response.text()
+
+                    log_event(
+                        logging.ERROR,
+                        "registration_check_bad_status",
+                        vk_user_id=vk_user_id,
+                        status=response.status,
+                        body=safe_http_body(error_text, force=LOG_ERROR_HTTP_BODIES),
+                    )
+
                     return RegistrationResult(
                         request_ok=False,
                         registered=False,
@@ -410,10 +1126,25 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
                     )
 
                 payload = await read_response_payload(response)
-                return parse_registration_payload(payload)
+                result = parse_registration_payload(payload)
 
-    except (aiohttp.ClientError, asyncio.TimeoutError) as error:
-        print(f"ошибка проверки регистрации: {error}")
+                log_event(
+                    logging.INFO,
+                    "registration_check_finished",
+                    vk_user_id=vk_user_id,
+                    request_ok=result.request_ok,
+                    registered=result.registered,
+                    user_data=safe_user_data(result.data),
+                )
+
+                return result
+
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        log_exception(
+            "registration_check_exception",
+            vk_user_id=vk_user_id,
+            url=url,
+        )
 
         return RegistrationResult(
             request_ok=False,
@@ -423,36 +1154,113 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
 
 
 async def send_to_backend(appeal: Appeal) -> bool:
+    url = api_url("/appeals")
+    body = appeal.to_dict()
+
+    log_event(
+        logging.INFO,
+        "appeal_send_started",
+        url=url,
+        vk_user_id=appeal.vk_user_id,
+        appeal_type=appeal.type,
+        campus_location=appeal.campus_location,
+        problem_category=appeal.problem_category,
+        body=safe_payload(body),
+    )
+
     try:
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.post(
-                api_url("/appeals"),
-                json=appeal.to_dict(),
+                url,
+                json=body,
+                headers={
+                    "Accept": "application/json",
+                },
             ) as response:
+                response_text = await response.text()
+
+                log_event(
+                    logging.INFO,
+                    "appeal_send_response_received",
+                    vk_user_id=appeal.vk_user_id,
+                    status=response.status,
+                    content_type=response.headers.get("Content-Type"),
+                    body=safe_http_body(response_text),
+                    body_length=len(response_text),
+                )
+
                 if response.status in (200, 201):
-                    print(f"успешно отправлено: статус {response.status}")
+                    log_event(
+                        logging.INFO,
+                        "appeal_send_success",
+                        vk_user_id=appeal.vk_user_id,
+                        status=response.status,
+                    )
                     return True
 
-                error_text = await response.text()
-                print(f"ошибка отправки: статус {response.status}, ответ: {error_text}")
+                log_event(
+                    logging.ERROR,
+                    "appeal_send_bad_status",
+                    vk_user_id=appeal.vk_user_id,
+                    status=response.status,
+                    request_body=safe_payload(body),
+                    response_body=safe_http_body(response_text, force=LOG_ERROR_HTTP_BODIES),
+                )
+
                 return False
 
-    except (aiohttp.ClientError, asyncio.TimeoutError) as error:
-        print(f"ошибка отправки обращения: {error}")
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        log_exception(
+            "appeal_send_exception",
+            vk_user_id=appeal.vk_user_id,
+            url=url,
+            request_body=safe_payload(body),
+        )
         return False
 
 
 async def save_appeal_to_db(appeal: Appeal) -> bool:
-    return await send_to_backend(appeal)
+    log_event(
+        logging.INFO,
+        "appeal_save_started",
+        vk_user_id=appeal.vk_user_id,
+        appeal_type=appeal.type,
+    )
+
+    result = await send_to_backend(appeal)
+
+    log_event(
+        logging.INFO if result else logging.ERROR,
+        "appeal_save_finished",
+        vk_user_id=appeal.vk_user_id,
+        success=result,
+    )
+
+    return result
 
 
 async def build_appeal_from_payload(
     payload: Dict[str, Any],
     vk_user_id: int,
 ) -> Tuple[Optional[Appeal], RegistrationResult]:
+    log_event(
+        logging.INFO,
+        "appeal_build_started",
+        vk_user_id=vk_user_id,
+        payload=safe_payload(payload),
+    )
+
     registration = await check_user_registration(vk_user_id)
 
     if not registration.request_ok or not registration.registered:
+        log_event(
+            logging.WARNING,
+            "appeal_build_stopped_registration_failed",
+            vk_user_id=vk_user_id,
+            request_ok=registration.request_ok,
+            registered=registration.registered,
+        )
+
         return None, registration
 
     appeal_type = enum_from_payload(
@@ -474,6 +1282,12 @@ async def build_appeal_from_payload(
     )
 
     if appeal_type == AppealType.SUGGESTION:
+        log_event(
+            logging.DEBUG,
+            "appeal_build_suggestion_location_fields_reset",
+            vk_user_id=vk_user_id,
+        )
+
         campus_location = LocationType.NOT_APPLICABLE
         problem_category = ProblemCategory.NOT_APPLICABLE
 
@@ -492,12 +1306,24 @@ async def build_appeal_from_payload(
         contact_email=user_fields["contact_email"],
     )
 
+    log_event(
+        logging.INFO,
+        "appeal_build_finished",
+        vk_user_id=vk_user_id,
+        appeal_type=appeal.type,
+        campus_location=appeal.campus_location,
+        problem_category=appeal.problem_category,
+        contact_fields=safe_payload(user_fields),
+    )
+
     return appeal, registration
 
 
 # --- клавиатуры ---
 
 def get_registration_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="registration")
+
     return (
         Keyboard(one_time=False)
         .add(Text(CHECK_REGISTRATION_BUTTON), color=KeyboardButtonColor.POSITIVE)
@@ -506,6 +1332,8 @@ def get_registration_kb():
 
 
 def get_start_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="start")
+
     return (
         Keyboard(one_time=False)
         .add(Text(START_BUTTON), color=KeyboardButtonColor.PRIMARY)
@@ -516,6 +1344,8 @@ def get_start_kb():
 
 
 def get_type_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="type")
+
     return (
         Keyboard(one_time=True)
         .add(Text(AppealType.COMPLAINT.value), color=KeyboardButtonColor.NEGATIVE)
@@ -527,6 +1357,8 @@ def get_type_kb():
 
 
 def get_navigation_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="navigation")
+
     return (
         Keyboard(one_time=True)
         .add(Text(BACK_BUTTON), color=KeyboardButtonColor.SECONDARY)
@@ -536,6 +1368,8 @@ def get_navigation_kb():
 
 
 def add_navigation(kb: Keyboard) -> Keyboard:
+    log_event(logging.DEBUG, "keyboard_navigation_added")
+
     kb.row()
     kb.add(Text(BACK_BUTTON), color=KeyboardButtonColor.SECONDARY)
     kb.add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.NEGATIVE)
@@ -544,6 +1378,8 @@ def add_navigation(kb: Keyboard) -> Keyboard:
 
 
 def get_location_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="location")
+
     kb = Keyboard(one_time=True)
 
     locations = [
@@ -562,8 +1398,17 @@ def get_location_kb():
 
 
 def get_category_kb(location: LocationType):
-    kb = Keyboard(one_time=True)
     categories = get_categories_for_location(location)
+
+    log_event(
+        logging.DEBUG,
+        "keyboard_created",
+        keyboard="category",
+        location=location,
+        categories=categories,
+    )
+
+    kb = Keyboard(one_time=True)
 
     for index, category in enumerate(categories):
         if index > 0 and index % 2 == 0:
@@ -575,6 +1420,8 @@ def get_category_kb(location: LocationType):
 
 
 def get_timeframe_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="timeframe")
+
     kb = (
         Keyboard(one_time=True)
         .add(Text("В течение дня"), color=KeyboardButtonColor.PRIMARY)
@@ -588,8 +1435,69 @@ def get_timeframe_kb():
 
 
 # --- регистрация ---
+
 verified_users: set[int] = set()
 registration_intro_sent_users: set[int] = set()
+registration_check_locks: Dict[int, asyncio.Lock] = {}
+processed_registration_check_messages: set[tuple] = set()
+processed_registration_check_message_order: List[tuple] = []
+PROCESSED_REGISTRATION_CHECK_LIMIT = 1000
+
+
+def get_registration_check_lock(vk_user_id: int) -> asyncio.Lock:
+    if vk_user_id not in registration_check_locks:
+        registration_check_locks[vk_user_id] = asyncio.Lock()
+
+    return registration_check_locks[vk_user_id]
+
+
+def get_message_dedup_key(message: Message) -> tuple:
+    return (
+        message.peer_id,
+        getattr(message, "conversation_message_id", None),
+        getattr(message, "id", None),
+        getattr(message, "date", None),
+        (message.text or "").strip(),
+    )
+
+
+def mark_registration_check_message(message: Message) -> bool:
+    key = get_message_dedup_key(message)
+
+    if key in processed_registration_check_messages:
+        log_event(
+            logging.WARNING,
+            "registration_check_duplicate_message_skipped",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            message_key=key,
+        )
+        return False
+
+    processed_registration_check_messages.add(key)
+    processed_registration_check_message_order.append(key)
+
+    while len(processed_registration_check_message_order) > PROCESSED_REGISTRATION_CHECK_LIMIT:
+        old_key = processed_registration_check_message_order.pop(0)
+        processed_registration_check_messages.discard(old_key)
+
+    log_event(
+        logging.DEBUG,
+        "registration_check_message_marked",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        processed_count=len(processed_registration_check_messages),
+    )
+
+    return True
+
+
+log_event(
+    logging.INFO,
+    "runtime_caches_initialized",
+    verified_users_count=len(verified_users),
+    registration_intro_sent_users_count=len(registration_intro_sent_users),
+)
 
 
 async def send_registration_intro(message: Message):
@@ -598,6 +1506,15 @@ async def send_registration_intro(message: Message):
 
     registration_url = get_registration_url(vk_user_id)
 
+    log_event(
+        logging.INFO,
+        "registration_intro_sending",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+        intro_sent_users_count=len(registration_intro_sent_users),
+        registration_url=registration_url if LOG_SENSITIVE_DATA else site_url(REGISTRATION_PATH),
+    )
+
     text = (
         "Добро пожаловать в модуль «Предложалоба».\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
@@ -605,12 +1522,25 @@ async def send_registration_intro(message: Message):
         "После регистрации нажмите «Проверить регистрацию»."
     )
 
-    await message.answer(text, keyboard=get_registration_kb())
+    await send_answer(
+        message,
+        text,
+        keyboard=get_registration_kb(),
+        event="registration_intro",
+    )
 
 
 async def send_registration_required(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_url = get_registration_url(vk_user_id)
+
+    log_event(
+        logging.INFO,
+        "registration_required_sending",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+        registration_url=registration_url if LOG_SENSITIVE_DATA else site_url(REGISTRATION_PATH),
+    )
 
     text = (
         "Регистрация не найдена.\n\n"
@@ -619,66 +1549,211 @@ async def send_registration_required(message: Message):
         "После регистрации нажмите «Проверить регистрацию»."
     )
 
-    await message.answer(text, keyboard=get_registration_kb())
+    await send_answer(
+        message,
+        text,
+        keyboard=get_registration_kb(),
+        event="registration_required",
+    )
 
 
 async def send_registration_error(message: Message):
-    await message.answer(
+    log_event(
+        logging.ERROR,
+        "registration_error_message_sending",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+    )
+
+    await send_answer(
+        message,
         "Возникла ошибка при проверке регистрации. Попробуйте позже.",
         keyboard=get_registration_kb(),
+        event="registration_error",
     )
 
 
 async def require_registered(message: Message) -> Optional[RegistrationResult]:
     vk_user_id = get_vk_user_id(message)
+
+    log_event(
+        logging.INFO,
+        "require_registered_started",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+    )
+
     result = await check_user_registration(vk_user_id)
 
     if not result.request_ok:
+        log_event(
+            logging.ERROR,
+            "require_registered_failed_request_error",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+        )
+
         await send_registration_error(message)
         return None
 
     if not result.registered:
         verified_users.discard(vk_user_id)
+
+        log_event(
+            logging.INFO,
+            "require_registered_failed_not_registered",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            verified_users_count=len(verified_users),
+        )
+
         await send_registration_required(message)
         return None
 
     verified_users.add(vk_user_id)
+
+    log_event(
+        logging.INFO,
+        "require_registered_success",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+        verified_users_count=len(verified_users),
+    )
+
     return result
 
 
 async def start_appeal_flow(message: Message):
-    await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
+    log_event(
+        logging.INFO,
+        "appeal_flow_starting",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+    )
 
-    await message.answer(
+    await set_state(
+        message,
+        AppealState.WAITING_FOR_TYPE,
+        reason="start_appeal_flow",
+    )
+
+    await send_answer(
+        message,
         "Регистрация подтверждена.\nВыберите тип обращения:",
         keyboard=get_type_kb(),
+        event="appeal_flow_started",
     )
 
 
 async def process_registration_check(message: Message) -> bool:
     vk_user_id = get_vk_user_id(message)
-    result = await check_user_registration(vk_user_id)
 
-    if not result.request_ok:
-        await send_registration_error(message)
-        return False
+    log_event(
+        logging.INFO,
+        "registration_check_button_processing_started",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+        state=get_current_state_name(message),
+    )
 
-    if not result.registered:
-        verified_users.discard(vk_user_id)
-        await send_registration_required(message)
-        return False
-
-    verified_users.add(vk_user_id)
-
-    if message.state_peer:
-        await message.answer(
-            "Регистрация подтверждена. Продолжайте текущий шаг или нажмите «Отмена».",
-            keyboard=get_navigation_kb(),
-        )
+    if not mark_registration_check_message(message):
         return True
 
-    await start_appeal_flow(message)
-    return True
+    lock = get_registration_check_lock(vk_user_id)
+
+    async with lock:
+        current_state = message.state_peer.state if message.state_peer else None
+
+        if vk_user_id in verified_users:
+            log_event(
+                logging.INFO,
+                "registration_check_user_already_verified",
+                peer_id=message.peer_id,
+                vk_user_id=vk_user_id,
+                state=get_current_state_name(message),
+            )
+
+            if message.state_peer:
+                if current_state == AppealState.WAITING_FOR_TYPE:
+                    await send_answer(
+                        message,
+                        "Регистрация уже подтверждена. Выберите тип обращения:",
+                        keyboard=get_type_kb(),
+                        event="registration_already_confirmed_type_state",
+                    )
+                else:
+                    await send_answer(
+                        message,
+                        "Регистрация уже подтверждена. Продолжайте текущий шаг или нажмите «Отмена».",
+                        keyboard=get_navigation_kb(),
+                        event="registration_already_confirmed_active_state",
+                    )
+
+                return True
+
+            await start_appeal_flow(message)
+            return True
+
+        result = await check_user_registration(vk_user_id)
+
+        if not result.request_ok:
+            log_event(
+                logging.ERROR,
+                "registration_check_button_processing_failed_request_error",
+                peer_id=message.peer_id,
+                vk_user_id=vk_user_id,
+            )
+
+            await send_registration_error(message)
+            return False
+
+        if not result.registered:
+            verified_users.discard(vk_user_id)
+
+            log_event(
+                logging.INFO,
+                "registration_check_button_processing_not_registered",
+                peer_id=message.peer_id,
+                vk_user_id=vk_user_id,
+                verified_users_count=len(verified_users),
+            )
+
+            await send_registration_required(message)
+            return False
+
+        verified_users.add(vk_user_id)
+
+        log_event(
+            logging.INFO,
+            "registration_check_button_processing_success",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            verified_users_count=len(verified_users),
+            state=get_current_state_name(message),
+        )
+
+        if message.state_peer:
+            current_state = message.state_peer.state
+
+            if current_state == AppealState.WAITING_FOR_TYPE:
+                await send_answer(
+                    message,
+                    "Регистрация подтверждена. Выберите тип обращения:",
+                    keyboard=get_type_kb(),
+                    event="registration_confirmed_in_type_state",
+                )
+                return True
+
+            await send_answer(
+                message,
+                "Регистрация подтверждена. Продолжайте текущий шаг или нажмите «Отмена».",
+                keyboard=get_navigation_kb(),
+                event="registration_confirmed_in_active_state",
+            )
+            return True
+
+        await start_appeal_flow(message)
+        return True
 
 
 # --- навигация ---
@@ -688,19 +1763,55 @@ def handle_navigation(func):
     async def wrapper(message: Message, *args, **kwargs):
         text = (message.text or "").strip()
 
+        log_event(
+            logging.DEBUG,
+            "navigation_wrapper_enter",
+            handler=func.__name__,
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            state=get_current_state_name(message),
+            text=safe_text(text),
+        )
+
         if text == CANCEL_BUTTON:
-            await bot.state_dispenser.delete(message.peer_id)
-            await message.answer(
+            log_event(
+                logging.INFO,
+                "navigation_cancel_received",
+                handler=func.__name__,
+                peer_id=message.peer_id,
+                vk_user_id=get_vk_user_id(message),
+            )
+
+            await delete_state(message, reason="user_cancel")
+            await send_answer(
+                message,
                 "Действие отменено. Нажмите «Начать», чтобы начать заново.",
                 keyboard=get_start_kb(),
+                event="cancelled",
             )
             return
 
         if text == BACK_BUTTON:
+            log_event(
+                logging.INFO,
+                "navigation_back_received",
+                handler=func.__name__,
+                peer_id=message.peer_id,
+                vk_user_id=get_vk_user_id(message),
+            )
+
             await back_action(message)
             return
 
         if text == CHECK_REGISTRATION_BUTTON:
+            log_event(
+                logging.INFO,
+                "navigation_registration_check_received",
+                handler=func.__name__,
+                peer_id=message.peer_id,
+                vk_user_id=get_vk_user_id(message),
+            )
+
             await process_registration_check(message)
             return
 
@@ -710,25 +1821,58 @@ def handle_navigation(func):
 
 
 async def back_action(message: Message):
+    log_handler_entry("back_action", message)
+
     if not message.state_peer:
+        log_event(
+            logging.WARNING,
+            "back_action_without_state",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
         return
 
     current_state = message.state_peer.state
     payload = message.state_peer.payload or {}
     appeal_type = enum_from_payload(AppealType, payload.get("type"), None)
 
+    log_event(
+        logging.INFO,
+        "back_action_processing",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        current_state=state_name(current_state),
+        payload=safe_payload(payload),
+        appeal_type=appeal_type,
+    )
+
     if current_state == AppealState.WAITING_FOR_LOCATION:
-        await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
-        await message.answer("Выберите тип обращения:", keyboard=get_type_kb())
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_TYPE,
+            reason="back_from_location",
+        )
+        await send_answer(
+            message,
+            "Выберите тип обращения:",
+            keyboard=get_type_kb(),
+            event="back_to_type",
+        )
         return
 
     if current_state == AppealState.WAITING_FOR_CATEGORY:
-        await bot.state_dispenser.set(
-            message.peer_id,
+        await set_state(
+            message,
             AppealState.WAITING_FOR_LOCATION,
+            reason="back_from_category",
             **payload,
         )
-        await message.answer("Выберите локацию проблемы:", keyboard=get_location_kb())
+        await send_answer(
+            message,
+            "Выберите локацию проблемы:",
+            keyboard=get_location_kb(),
+            event="back_to_location",
+        )
         return
 
     if current_state == AppealState.WAITING_FOR_TIMEFRAME:
@@ -738,142 +1882,312 @@ async def back_action(message: Message):
             LocationType.NOT_APPLICABLE,
         )
 
-        await bot.state_dispenser.set(
-            message.peer_id,
+        await set_state(
+            message,
             AppealState.WAITING_FOR_CATEGORY,
+            reason="back_from_timeframe",
             **payload,
         )
-        await message.answer(
+        await send_answer(
+            message,
             "Выберите категорию проблемы:",
             keyboard=get_category_kb(location),
+            event="back_to_category",
         )
         return
 
     if current_state == AppealState.WAITING_FOR_DESCRIPTION:
         if appeal_type == AppealType.COMPLAINT:
-            await bot.state_dispenser.set(
-                message.peer_id,
+            await set_state(
+                message,
                 AppealState.WAITING_FOR_TIMEFRAME,
+                reason="back_from_description_to_timeframe",
                 **payload,
             )
-            await message.answer("Укажите ориентировочные сроки:", keyboard=get_timeframe_kb())
+            await send_answer(
+                message,
+                "Укажите ориентировочные сроки:",
+                keyboard=get_timeframe_kb(),
+                event="back_to_timeframe",
+            )
         else:
-            await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
-            await message.answer("Выберите тип обращения:", keyboard=get_type_kb())
+            await set_state(
+                message,
+                AppealState.WAITING_FOR_TYPE,
+                reason="back_from_suggestion_description_to_type",
+            )
+            await send_answer(
+                message,
+                "Выберите тип обращения:",
+                keyboard=get_type_kb(),
+                event="back_to_type",
+            )
 
         return
 
-    await bot.state_dispenser.set(message.peer_id, AppealState.WAITING_FOR_TYPE)
-    await message.answer("Выберите тип обращения:", keyboard=get_type_kb())
+    log_event(
+        logging.WARNING,
+        "back_action_unknown_state",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        current_state=state_name(current_state),
+    )
+
+    await set_state(
+        message,
+        AppealState.WAITING_FOR_TYPE,
+        reason="back_unknown_state_to_type",
+    )
+    await send_answer(
+        message,
+        "Выберите тип обращения:",
+        keyboard=get_type_kb(),
+        event="back_to_type_fallback",
+    )
 
 
 # --- обработчики ---
 
 @bot.on.message(text=[CHECK_REGISTRATION_BUTTON])
 async def check_registration_handler(message: Message):
+    log_handler_entry("check_registration_handler", message)
     await process_registration_check(message)
 
 
 @bot.on.message(text=[START_BUTTON, "Привет", "предложалоба", "Предложалоба"])
 async def start_handler(message: Message):
+    log_handler_entry("start_handler", message)
+
     if message.state_peer:
-        await message.answer(
+        log_event(
+            logging.INFO,
+            "start_handler_blocked_by_active_state",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            state=get_current_state_name(message),
+        )
+
+        await send_answer(
+            message,
             "Сначала завершите текущее обращение или нажмите «Отмена».",
             keyboard=get_navigation_kb(),
+            event="start_blocked_by_state",
         )
         return
 
     vk_user_id = get_vk_user_id(message)
 
-    # первое сообщение не проверяет регистрацию через бэк
     if vk_user_id not in registration_intro_sent_users and vk_user_id not in verified_users:
+        log_event(
+            logging.INFO,
+            "start_handler_first_contact",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+        )
+
         await send_registration_intro(message)
         return
 
-    # после подтвержденной регистрации можно сразу начинать
     if vk_user_id in verified_users:
+        log_event(
+            logging.INFO,
+            "start_handler_user_already_verified",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+        )
+
         await start_appeal_flow(message)
         return
 
-    # если приветствие уже показывали, но регистрацию еще не подтвердили
+    log_event(
+        logging.INFO,
+        "start_handler_intro_already_sent_not_verified",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+    )
+
     await send_registration_intro(message)
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_TYPE)
 async def type_handler(message: Message):
+    log_handler_entry("type_handler", message)
+
     text = (message.text or "").strip()
 
     if text == CANCEL_BUTTON:
-        await bot.state_dispenser.delete(message.peer_id)
-        await message.answer(
+        log_event(
+            logging.INFO,
+            "type_handler_cancel",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await delete_state(message, reason="type_handler_cancel")
+        await send_answer(
+            message,
             "Действие отменено. Нажмите «Начать», чтобы начать заново.",
             keyboard=get_start_kb(),
+            event="type_cancelled",
         )
         return
 
     if text == BACK_BUTTON:
-        await message.answer("Вы уже на первом шаге.", keyboard=get_type_kb())
+        log_event(
+            logging.INFO,
+            "type_handler_back_on_first_step",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await send_answer(
+            message,
+            "Вы уже на первом шаге.",
+            keyboard=get_type_kb(),
+            event="back_on_first_step",
+        )
         return
 
     if text == CHECK_REGISTRATION_BUTTON:
+        log_event(
+            logging.INFO,
+            "type_handler_registration_check",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
         await process_registration_check(message)
         return
 
-    # на этом шаге не дергаем бэк, потому что проверка уже была
     if get_vk_user_id(message) not in verified_users:
+        log_event(
+            logging.WARNING,
+            "type_handler_unverified_user",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
         await send_registration_intro(message)
         return
 
     if text == AppealType.COMPLAINT.value:
-        await bot.state_dispenser.set(
-            message.peer_id,
+        log_event(
+            logging.INFO,
+            "type_handler_complaint_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await set_state(
+            message,
             AppealState.WAITING_FOR_LOCATION,
+            reason="complaint_selected",
             type=AppealType.COMPLAINT.value,
         )
-        await message.answer("Выберите локацию проблемы:", keyboard=get_location_kb())
+        await send_answer(
+            message,
+            "Выберите локацию проблемы:",
+            keyboard=get_location_kb(),
+            event="complaint_location_requested",
+        )
         return
 
     if text == AppealType.SUGGESTION.value:
-        await bot.state_dispenser.set(
-            message.peer_id,
+        log_event(
+            logging.INFO,
+            "type_handler_suggestion_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await set_state(
+            message,
             AppealState.WAITING_FOR_DESCRIPTION,
+            reason="suggestion_selected",
             type=AppealType.SUGGESTION.value,
         )
-        await message.answer("Опишите ваше предложение:", keyboard=get_navigation_kb())
+        await send_answer(
+            message,
+            "Опишите ваше предложение:",
+            keyboard=get_navigation_kb(),
+            event="suggestion_description_requested",
+        )
         return
 
-    await message.answer("Пожалуйста, воспользуйтесь кнопками.", keyboard=get_type_kb())
+    log_event(
+        logging.WARNING,
+        "type_handler_invalid_input",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        text=safe_text(text),
+    )
+
+    await send_answer(
+        message,
+        "Пожалуйста, воспользуйтесь кнопками.",
+        keyboard=get_type_kb(),
+        event="type_invalid_input",
+    )
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_LOCATION)
 @handle_navigation
 async def location_handler(message: Message):
+    log_handler_entry("location_handler", message)
+
     text = (message.text or "").strip()
 
     try:
         location = LocationType(text)
+
+        log_event(
+            logging.INFO,
+            "location_handler_location_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            location=location,
+        )
+
     except ValueError:
-        await message.answer("Выберите локацию из списка.", keyboard=get_location_kb())
+        log_event(
+            logging.WARNING,
+            "location_handler_invalid_location",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            text=safe_text(text),
+        )
+
+        await send_answer(
+            message,
+            "Выберите локацию из списка.",
+            keyboard=get_location_kb(),
+            event="location_invalid_input",
+        )
         return
 
     payload = (message.state_peer.payload or {}).copy()
     payload["campus_location"] = location.value
 
-    await bot.state_dispenser.set(
-        message.peer_id,
+    await set_state(
+        message,
         AppealState.WAITING_FOR_CATEGORY,
+        reason="location_selected",
         **payload,
     )
 
-    await message.answer(
+    await send_answer(
+        message,
         "Выберите категорию проблемы:",
         keyboard=get_category_kb(location),
+        event="category_requested",
     )
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_CATEGORY)
 @handle_navigation
 async def category_handler(message: Message):
+    log_handler_entry("category_handler", message)
+
     text = (message.text or "").strip()
     payload = (message.state_peer.payload or {}).copy()
 
@@ -887,115 +2201,256 @@ async def category_handler(message: Message):
 
     try:
         category = ProblemCategory(text)
+
+        log_event(
+            logging.INFO,
+            "category_handler_category_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            location=location,
+            category=category,
+        )
+
     except ValueError:
-        await message.answer(
+        log_event(
+            logging.WARNING,
+            "category_handler_invalid_category",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            location=location,
+            text=safe_text(text),
+        )
+
+        await send_answer(
+            message,
             "Выберите категорию из списка.",
             keyboard=get_category_kb(location),
+            event="category_invalid_input",
         )
         return
 
     if category not in allowed_categories:
-        await message.answer(
+        log_event(
+            logging.WARNING,
+            "category_handler_category_not_allowed_for_location",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            location=location,
+            category=category,
+            allowed_categories=allowed_categories,
+        )
+
+        await send_answer(
+            message,
             "Эта категория недоступна для выбранной локации.",
             keyboard=get_category_kb(location),
+            event="category_not_allowed",
         )
         return
 
     payload["problem_category"] = category.value
 
-    await bot.state_dispenser.set(
-        message.peer_id,
+    await set_state(
+        message,
         AppealState.WAITING_FOR_TIMEFRAME,
+        reason="category_selected",
         **payload,
     )
 
-    await message.answer("Укажите ориентировочные сроки:", keyboard=get_timeframe_kb())
+    await send_answer(
+        message,
+        "Укажите ориентировочные сроки:",
+        keyboard=get_timeframe_kb(),
+        event="timeframe_requested",
+    )
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_TIMEFRAME)
 @handle_navigation
 async def timeframe_handler(message: Message):
+    log_handler_entry("timeframe_handler", message)
+
     text = (message.text or "").strip()
 
     if text not in VALID_TIMEFRAMES:
-        await message.answer("Пожалуйста, воспользуйтесь кнопками.", keyboard=get_timeframe_kb())
+        log_event(
+            logging.WARNING,
+            "timeframe_handler_invalid_timeframe",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            text=safe_text(text),
+            valid_timeframes=VALID_TIMEFRAMES,
+        )
+
+        await send_answer(
+            message,
+            "Пожалуйста, воспользуйтесь кнопками.",
+            keyboard=get_timeframe_kb(),
+            event="timeframe_invalid_input",
+        )
         return
+
+    log_event(
+        logging.INFO,
+        "timeframe_handler_timeframe_selected",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        timeframe=text,
+    )
 
     payload = (message.state_peer.payload or {}).copy()
     payload["timeframe"] = text
 
-    await bot.state_dispenser.set(
-        message.peer_id,
+    await set_state(
+        message,
         AppealState.WAITING_FOR_DESCRIPTION,
+        reason="timeframe_selected",
         **payload,
     )
 
-    await message.answer("Опишите суть вашей проблемы подробно:", keyboard=get_navigation_kb())
+    await send_answer(
+        message,
+        "Опишите суть вашей проблемы подробно:",
+        keyboard=get_navigation_kb(),
+        event="description_requested",
+    )
 
 
 @bot.on.message(state=AppealState.WAITING_FOR_DESCRIPTION)
 @handle_navigation
 async def description_handler(message: Message):
+    log_handler_entry("description_handler", message)
+
     text = (message.text or "").strip()
 
     if not is_valid_description(text):
-        await message.answer(
+        log_event(
+            logging.WARNING,
+            "description_handler_invalid_description",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            description_length=len(text),
+        )
+
+        await send_answer(
+            message,
             "Описание слишком короткое. Опишите обращение подробнее:",
             keyboard=get_navigation_kb(),
+            event="description_too_short",
         )
         return
 
     payload = (message.state_peer.payload or {}).copy()
     payload["description"] = text
 
+    log_event(
+        logging.INFO,
+        "description_handler_description_received",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+        payload=safe_payload(payload),
+    )
+
     vk_user_id = get_vk_user_id(message)
     appeal, registration = await build_appeal_from_payload(payload, vk_user_id)
 
     if not registration.request_ok:
-        await message.answer(
+        log_event(
+            logging.ERROR,
+            "description_handler_registration_check_error",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+        )
+
+        await send_answer(
+            message,
             "Возникла ошибка при проверке регистрации. Попробуйте позже.",
             keyboard=get_navigation_kb(),
+            event="final_registration_check_error",
         )
         return
 
     if not registration.registered:
-        await bot.state_dispenser.delete(message.peer_id)
+        verified_users.discard(vk_user_id)
+
+        log_event(
+            logging.INFO,
+            "description_handler_user_not_registered_on_final_check",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            verified_users_count=len(verified_users),
+        )
+
+        await delete_state(message, reason="final_registration_check_not_registered")
         await send_registration_required(message)
         return
 
     if appeal is None:
-        await bot.state_dispenser.delete(message.peer_id)
-        await message.answer(
+        log_event(
+            logging.ERROR,
+            "description_handler_appeal_none_after_build",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            payload=safe_payload(payload),
+        )
+
+        await delete_state(message, reason="appeal_build_failed")
+        await send_answer(
+            message,
             "Возникла ошибка при формировании обращения. Попробуйте позже.",
             keyboard=get_start_kb(),
+            event="appeal_build_error",
         )
         return
 
     saved = await save_appeal_to_db(appeal)
 
     if not saved:
-        await bot.state_dispenser.set(
-            message.peer_id,
+        log_event(
+            logging.ERROR,
+            "description_handler_appeal_save_failed",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            payload=safe_payload(payload),
+        )
+
+        await set_state(
+            message,
             AppealState.WAITING_FOR_DESCRIPTION,
+            reason="appeal_save_failed_retry_description",
             **payload,
         )
-        await message.answer(
+        await send_answer(
+            message,
             "Возникла ошибка при отправке обращения. Попробуйте позже.",
             keyboard=get_navigation_kb(),
+            event="appeal_send_error",
         )
         return
 
-    await bot.state_dispenser.delete(message.peer_id)
+    await delete_state(message, reason="appeal_saved_successfully")
+
+    log_event(
+        logging.INFO,
+        "description_handler_appeal_flow_finished",
+        peer_id=message.peer_id,
+        vk_user_id=vk_user_id,
+        appeal_type=appeal.type,
+    )
 
     if appeal.type == AppealType.COMPLAINT:
-        await message.answer(
+        await send_answer(
+            message,
             "✅ Ваша жалоба успешно зарегистрирована!",
             keyboard=get_start_kb(),
+            event="complaint_saved_success",
         )
     else:
-        await message.answer(
+        await send_answer(
+            message,
             "✅ Ваше предложение успешно зарегистрировано!",
             keyboard=get_start_kb(),
+            event="suggestion_saved_success",
         )
 
 
@@ -1003,17 +2458,70 @@ async def description_handler(message: Message):
 
 @bot.on.message()
 async def fallback_handler(message: Message):
+    log_handler_entry("fallback_handler", message)
+
+    text = (message.text or "").strip()
+
+    if text == CHECK_REGISTRATION_BUTTON:
+        log_event(
+            logging.WARNING,
+            "fallback_received_registration_check_button",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            state=get_current_state_name(message),
+        )
+
+        await process_registration_check(message)
+        return
+
+    if text == START_BUTTON:
+        log_event(
+            logging.WARNING,
+            "fallback_received_start_button",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            state=get_current_state_name(message),
+        )
+
+        await start_handler(message)
+        return
+
     if message.state_peer:
-        await message.answer(
+        log_event(
+            logging.INFO,
+            "fallback_active_state",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+            state=get_current_state_name(message),
+        )
+
+        await send_answer(
+            message,
             "Пожалуйста, следуйте инструкциям или используйте кнопки «Назад» / «Отмена».",
             keyboard=get_navigation_kb(),
+            event="fallback_active_state",
         )
         return
 
-    # первое произвольное сообщение не должно обращаться к бэку
+    log_event(
+        logging.INFO,
+        "fallback_no_state_registration_intro",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+    )
+
     await send_registration_intro(message)
 
 
 if __name__ == "__main__":
+    log_event(
+        logging.INFO,
+        "bot_starting",
+        api_base_url=API_BASE_URL,
+        site_base_url=SITE_BASE_URL,
+        registration_path=REGISTRATION_PATH,
+        appeal_enum_format=APPEAL_ENUM_FORMAT,
+    )
+
     print("бот «предложалоба» запущен")
     bot.run_forever()
