@@ -28,7 +28,7 @@ defineProps({
     background: var(--color-main);
     padding: 15px;
     font-family: var(--font-text);
-    font-size: 20px;
+    font-size: 18px;
     color: var(--color-font);
     resize: none;
     box-sizing: border-box;
@@ -46,8 +46,7 @@ defineProps({
 
 @media (min-width: 768px) {
     .input {
-
-    font-size: 26px;
+        font-size: 26px;
     }
 }
 </style>

@@ -34,46 +34,55 @@ const consent = ref(false);
 </script>
 
 <template>
-    <header>
-        <h1>Напишите нам о своей проблеме</h1>
-        <p>
-            Расскажите о волнующей вас проблеме, и мы постараемся помочь в ее
-            решении
-        </p>
-    </header>
     <main class="main">
+        <div class="header">
+            <img src="./assets/prof.jpg" class="logo" />
+            <p>кнопка</p>
+        </div>
+        <div class="greet">
+            <h1>Напишите о своей проблеме</h1>
+            <p>
+                Расскажите о волнующей вас проблеме, и мы постараемся помочь в ее
+                решении
+            </p>
+        </div>
         <div class="problem">
-            <h2>Тип обращения</h2>
-            <div class="options">
-                <Option
-                    v-for="option in options"
-                    :key="option"
-                    :label="option"
-                    :selected="option === selectedType"
-                    @select="selectedType = option"
-                />
+            <div class="options-wrapper">
+                <h2>Тип обращения</h2>
+                <div class="options">
+                    <Option
+                        v-for="option in options"
+                        :key="option"
+                        :label="option"
+                        :selected="option === selectedType"
+                        @select="selectedType = option"
+                    />
+                </div>
+                <div class="categories">
+                    <CategorySelect
+                        v-model="selectedCategory"
+                        :categories="categories"
+                        label="Категория"
+                    />
+                    <CategorySelect
+                        v-model="selectedSubcategory"
+                        :categories="subcategories"
+                        label="Подкатегория"
+                    />
+                </div>
             </div>
-            <div class="categories">
-                <CategorySelect
-                    v-model="selectedCategory"
-                    :categories="categories"
-                    label="Категория"
-                />
-                <CategorySelect
-                    v-model="selectedSubcategory"
-                    :categories="subcategories"
-                    label="Подкатегория"
-                />
+            <div class="problem-description">
+                <h2>Описание проблемы</h2>
+                <TextBox v-model="message" />
+                <div class="file-upload">
+                    <FileUpload />
+                    <p class="restrictions">Форматы: JPG, PNG, PDF до 10 МБ</p>
+                </div>
             </div>
-            <h2>Описание проблемы</h2>
-            <TextBox v-model="message" />
-
-            <FileUpload />
-            <p class="restrictions">Форматы: JPG, PNG, PDF до 10 МБ</p>
         </div>
         <div class="contacts">
             <div class="contacts-header">
-                <h2>
+                <h2 style="margin: 0;">
                     Контакты для ответа
                     <span style="color: #999999">(необязательно)</span>
                 </h2>
@@ -120,6 +129,27 @@ const consent = ref(false);
     align-items: center;
     box-sizing: border-box;
     width: 100%;
+    box-shadow: 0px 0px 5px rgba(0,0,0,0.1); 
+    gap: 20px;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.logo {
+    max-width: 130px;
+    height: auto;
+}
+
+.greet {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .problem,
@@ -128,10 +158,28 @@ const consent = ref(false);
     width: 100%;
 }
 
+.problem {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.options-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .options {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+}
+
+.problem-description {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .categories {
@@ -146,34 +194,35 @@ const consent = ref(false);
     gap: 10px;
 }
 
-.submit {
-    margin-top: 40px;
-}
-
 .contacts-header {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 20px;
     width: 100%;
-    margin-bottom: 20px;
+    margin: 20px 0;
 }
 
 h1 {
     font-family: var(--font-header);
-    font-size: 28px;
+    font-size: 22px;
     color: var(--color-main-inverted);
+    margin: 0;
 }
 
 h2 {
     color: var(--color-main-inverted);
     font-size: 22px;
     font-weight: bold;
+    margin: 0;
+}
+
+p {
+    margin: 0;
 }
 
 p.restrictions {
-    margin: 0;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 footer {

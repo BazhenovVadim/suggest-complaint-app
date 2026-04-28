@@ -45,16 +45,14 @@ const handleFileChange = (event) => {
     border-radius: 16px;
     padding: 15px;
     padding-bottom: 12px;
-    margin-top: 20px;
     margin-bottom: 10px;
     font-family: var(--font-text);
     font-weight: 500;
-    font-size: 18px;
+    font-size: 16px;
     color: #2f2f2f;
     cursor: pointer;
     display: inline-block;
     min-width: 170px;
-    width: 35%;
     transition: background 0.2s ease;
 }
 

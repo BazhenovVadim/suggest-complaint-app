@@ -69,7 +69,7 @@ const handleChange = (event) => {
 }
 
 .consent label {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
     color: var(--color-font);
 }
