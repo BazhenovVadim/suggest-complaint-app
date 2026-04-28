@@ -1,0 +1,76 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: suggest-complaint-monolith
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/suggest_complaint
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: super-secret-change-me
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: suggest-complaint-frontend
+    depends_on:
+      - app
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
+  vk-bot:
+    build:
+      context: ./vk_bot
+      dockerfile: Dockerfile
+    container_name: suggest-complaint-vk-bot
+    depends_on:
+      - app
+    environment:
+      VK_TOKEN: ${VK_TOKEN}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+      BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
+    restart: unless-stopped
+
+#  tg-bot:
+#    build:
+#      context: ./tg_bot
+#      dockerfile: Dockerfile
+#    container_name: suggest-complaint-tg-bot
+#    depends_on:
+#      - app
+#    environment:
+#      TG_TOKEN: ${TG_TOKEN}
+#      BACKEND_BASE_URL: http://app:8080
+#      BACKEND_API_PREFIX: /api
+#    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: suggest-complaint-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: suggest_complaint
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d suggest_complaint"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

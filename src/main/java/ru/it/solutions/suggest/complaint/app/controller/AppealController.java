@@ -1,6 +1,7 @@
 package ru.it.solutions.suggest.complaint.app.controller;
 
 
+import jakarta.persistence.Id;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -39,13 +40,20 @@ public class AppealController {
 
     @GetMapping
     public ResponseEntity<List<AppealResponseDto>> getAll(@AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ResponseEntity.ok(appealService.getAllAppeals(currentUser.getUserEntity().getId()));
+        return ResponseEntity.ok(appealService.getAllAppeals());
     }
+
+
+    public ResponseEntity<List<AppealResponseDto>> getAllByUserId(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(appealService.getAllAppealsByUserId(currentUser.getId()));
+    }
+
+
 
     @GetMapping("/{id}")
     public ResponseEntity<AppealResponseDto> getById(@AuthenticationPrincipal CustomUserDetails currentUser,
                                                      @PathVariable UUID id) {
-        return ResponseEntity.ok(appealService.getAppealById(id,currentUser.getUserEntity().getId()));
+        return ResponseEntity.ok(appealService.getAppealById(id));
     }
 
     @PatchMapping("/{id}")

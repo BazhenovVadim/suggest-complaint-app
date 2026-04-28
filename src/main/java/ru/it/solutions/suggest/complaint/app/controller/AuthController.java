@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ErrorResponse;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.LoginResponse;
@@ -17,15 +18,17 @@ import ru.it.solutions.suggest.complaint.app.service.auth.AuthService;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("api/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request,
+                                      @RequestParam(required = false) String vkUserId,
+                                      @RequestParam(required = false) String tgUserId) {
         try {
-            UUID userId = authService.register(request.email(), request.password());
+            UUID userId = authService.register(request.email(), request.password(), vkUserId, tgUserId);
             return ResponseEntity.ok(new RegisterResponse(userId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));

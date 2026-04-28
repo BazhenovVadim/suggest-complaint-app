@@ -44,3 +44,7 @@ dist-ssr
 
 ### VS Code ###
 .vscode/
+
+
+.env
+dtos

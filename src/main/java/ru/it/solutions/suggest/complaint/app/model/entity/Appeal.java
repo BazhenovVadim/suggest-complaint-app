@@ -27,6 +27,9 @@ public class Appeal {
     @Column(nullable = false)
     private AppealType type;
 
+    @Column(updatable = false)
+    private Integer appealNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LocationType campusLocation;

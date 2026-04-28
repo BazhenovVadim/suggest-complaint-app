@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2" author="developer">
+        <createTable tableName="appeals">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="appeal_number" type="int">
+                <constraints nullable="true" unique="true"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="campus_location" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="problem_category" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timeframe" type="VARCHAR(50)"/>
+            <column name="description" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_path" type="VARCHAR(500)"/>
+            <column name="file_name" type="VARCHAR(255)"/>
+            <column name="contact_name" type="VARCHAR(100)"/>
+            <column name="contact_phone" type="VARCHAR(20)"/>
+            <column name="contact_email" type="VARCHAR(100)"/>
+            <column name="personal_data_consent" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)" defaultValue="NEW">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="developer">
+        <addForeignKeyConstraint
+                constraintName="fk_appeals_user"
+                baseTableName="appeals"
+                baseColumnNames="user_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                onDelete="SET NULL"/>
+    </changeSet>
+
+</databaseChangeLog>

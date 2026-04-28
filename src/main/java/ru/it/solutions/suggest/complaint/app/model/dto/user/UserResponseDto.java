@@ -1,4 +1,4 @@
-package ru.it.solutions.suggest.complaint.app.model.dto;
+package ru.it.solutions.suggest.complaint.app.model.dto.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,4 +15,7 @@ public class UserResponseDto {
     private UUID id;
     private String email;
     private boolean confirmed;
+    private String fullName;
+    private String vkUserId;
+    private String telegramUserId;
 }

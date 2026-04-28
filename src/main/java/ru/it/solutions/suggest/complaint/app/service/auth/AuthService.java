@@ -23,15 +23,27 @@ public class AuthService {
 
 
     @Transactional
-    public UUID register(String email, String password) {
+    public UUID register(String email, String password, String vkUserId, String tgUserId) {
         if (!PasswordPolicy.validate(password)) {
             throw new IllegalArgumentException("Password does not meet policy");
         }
         userRepository.findByEmail(email.toLowerCase()).ifPresent(u -> {
             throw new IllegalArgumentException("Email already in use");
         });
+        if (vkUserId != null) {
+            userRepository.findByVkUserId(vkUserId).ifPresent(u -> {
+                throw new IllegalArgumentException("VK user is already linked");
+            });
+        }
+        if (tgUserId != null) {
+            userRepository.findByTelegramUserId(tgUserId).ifPresent(u -> {
+                throw new IllegalArgumentException("Telegram user is already linked");
+            });
+        }
         String hashed = passwordEncoder.encode(password);
         UserEntity user = UserEntity.register(email, hashed);
+        user.setVkUserId(vkUserId);
+        user.setTelegramUserId(tgUserId);
         user.confirm();
         userRepository.save(user);
         return user.getId();
