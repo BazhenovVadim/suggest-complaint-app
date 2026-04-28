@@ -203,6 +203,10 @@ const consent = ref(false);
     margin: 20px 0;
 }
 
+.consent {
+    margin-bottom: 20px;
+}
+
 h1 {
     font-family: var(--font-header);
     font-size: 22px;

@@ -103,12 +103,12 @@ const toggleMode = () => {
         </form>
         <p v-if="error">{{ error }}</p>
 
-        <p>
+        <div class="toggle-login">
             {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
             <a href="#" @click.prevent="toggleMode">
                 {{ isLogin ? 'Зарегистрироваться' : 'Войти' }}
             </a>
-        </p>
+        </div>
     </main>
 </template>
 
@@ -122,8 +122,6 @@ const toggleMode = () => {
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
-    width: 35vw;
-    min-width: 600px;
     box-shadow: 0px 0px 5px rgba(0,0,0,0.1); 
     gap: 20px;
 }
@@ -158,15 +156,19 @@ const toggleMode = () => {
     width: 100%;
 }
 
+.toggle-login {
+    text-align: center;
+}
+
 h1 {
     font-family: var(--font-header);
-    font-size: 22px;
+    font-size: 30px;
     color: var(--color-main-inverted);
 }
 
 h2 {
     color: var(--color-font);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
 }
 
@@ -183,6 +185,8 @@ a:hover {
 @media (min-width: 768px) {
     .main {
         padding: 35px;
+        min-width: 600px;
+        width: 35vw;
     }
     h1 {
         font-size: 44px;

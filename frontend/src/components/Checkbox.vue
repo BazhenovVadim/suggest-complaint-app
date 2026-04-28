@@ -28,7 +28,6 @@ const handleChange = (event) => {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
 }
 
 .consent input[type="checkbox"] {
@@ -76,7 +75,7 @@ const handleChange = (event) => {
 
 @media (min-width: 768px) {
     .consent label {
-        font-size: 26px;
+        font-size: 22px;
     }
 }
 </style>
