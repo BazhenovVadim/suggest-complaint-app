@@ -30,6 +30,13 @@ body {
     display: flex;
     justify-content: center;
     margin: 15px;
+    box-sizing: border-box;
+    align-items: center;
+    min-height: 90svh;
+}
+
+h1, h2 {
+    margin: 0;
 }
 
 @media (min-width: 768px) {
