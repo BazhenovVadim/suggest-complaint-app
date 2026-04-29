@@ -3,15 +3,11 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 
-import Input from "./Input.vue";
-import Button from './Button.vue';
-import Checkbox from './Checkbox.vue';
+import Input from "../components/Input.vue";
+import Button from "../components/Button.vue";
 
-const isLogin = ref(true);
 const email = ref('');
 const password = ref('');
-const confirmPassword = ref('');
-const consent = ref(false);
 const error = ref('');
 const loading = ref(false);
 const router = useRouter();
@@ -19,49 +15,27 @@ const router = useRouter();
 const handleSubmit = async () => {
     loading.value = true;
     error.value = '';
-    if (!isLogin.value) {
-        if (password.value !== confirmPassword.value) {
-            error.value = 'Пароли не совпадают';
-            loading.value = false;
-            return;
-        }
-        if (!consent.value) {
-            error.value = 'Необходимо согласие на обработку персональных данных';
-            loading.value = false;
-            return;
-        }
-    }
+    
     try {
-        const endpoint = isLogin.value ? '/api/auth/login' : '/api/auth/register';
-        const response = await axios.post(`http://localhost:8080${endpoint}`, {
+        const response = await axios.post('http://localhost:8080/api/auth/login', {
             email: email.value,
             password: password.value,
         });
-        if (isLogin.value) {
-            localStorage.setItem('accessToken', response.data.accessToken);
-            localStorage.setItem('refreshToken', response.data.refreshToken);
-            router.push('/');
-        } else {
-            alert('Регистрация успешна! Теперь войдите.');
-            isLogin.value = true;
-        }
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        router.push('/');
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || 'Неизвестная ошибка'}`;
     } finally {
         loading.value = false;
     }
 };
-
-const toggleMode = () => {
-    isLogin.value = !isLogin.value;
-    error.value = '';
-};
 </script>
 
 <template>
     <main class="main">
         <img src="../assets/prof.jpg" class="logo" />
-        <h1>{{ isLogin ? 'Вход в систему' : 'Регистрация' }}</h1>
+        <h1>Вход в систему</h1>
         <form class="form" @submit.prevent="handleSubmit">
             <div class="field-group">
                 <h2>Email</h2>
@@ -83,31 +57,15 @@ const toggleMode = () => {
                     required
                 />
             </div>
-            <template v-if="!isLogin">
-                <div class="field-group">
-                    <h2>Подтверждение пароля</h2>
-                    <Input
-                        class="confirm-password"
-                        v-model="confirmPassword"
-                        type="password"
-                        placeholder="Подтвердите пароль"
-                        required
-                    />
-                </div>
-                <Checkbox
-                    v-model="consent"
-                    label="Я согласен на обработку персональных данных"
-                />
-            </template>
-            <Button type="submit" :disabled="loading">{{ isLogin ? 'Войти' : 'Зарегистрироваться' }}</Button>
+            <Button type="submit" :disabled="loading">Войти</Button>
         </form>
         <p v-if="error">{{ error }}</p>
 
         <div class="toggle-login">
-            {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-            <a href="#" @click.prevent="toggleMode">
-                {{ isLogin ? 'Зарегистрироваться' : 'Войти' }}
-            </a>
+            Нет аккаунта?
+            <router-link to="/register">
+                Зарегистрироваться
+            </router-link>
         </div>
     </main>
 </template>
@@ -148,11 +106,7 @@ const toggleMode = () => {
     margin: 0;
 }
 
-.email, .password, .confirm-password {
-    width: 100%;
-}
-
-.consent {
+.email, .password {
     width: 100%;
 }
 
