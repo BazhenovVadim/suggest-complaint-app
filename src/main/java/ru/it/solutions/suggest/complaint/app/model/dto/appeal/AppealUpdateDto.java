@@ -1,17 +1,19 @@
-package ru.it.solutions.suggest.complaint.app.model.dto;
+package ru.it.solutions.suggest.complaint.app.model.dto.appeal;
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.it.solutions.suggest.complaint.app.model.enums.*;
+
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppealUpdateDto {
-
+    private UUID id;
     private AppealType type;
     private LocationType campusLocation;
     private ProblemCategory problemCategory;
@@ -24,4 +26,5 @@ public class AppealUpdateDto {
     private String contactEmail;
     private Boolean personalDataConsent;
     private AppealStatus status;
+    private UUID userId;
 }

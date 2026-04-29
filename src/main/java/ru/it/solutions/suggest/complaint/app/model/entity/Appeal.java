@@ -1,12 +1,12 @@
 package ru.it.solutions.suggest.complaint.app.model.entity;
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import ru.it.solutions.suggest.complaint.app.model.enums.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -26,6 +26,9 @@ public class Appeal {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AppealType type;
+
+    @Column(updatable = false)
+    private Integer appealNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -59,4 +62,8 @@ public class Appeal {
     @Column(nullable = false)
     @Builder.Default
     private AppealStatus status = AppealStatus.NEW;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
 }

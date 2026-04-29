@@ -1,11 +1,26 @@
 package ru.it.solutions.suggest.complaint.app.controller;
 
-import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
-import ru.it.solutions.suggest.complaint.app.service.AppealService;
+
+import jakarta.persistence.Id;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
+import ru.it.solutions.suggest.complaint.app.service.AppealService;
+import ru.it.solutions.suggest.complaint.app.service.auth.CustomUserDetails;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -17,28 +32,41 @@ public class AppealController {
     private final AppealService appealService;
 
     @PostMapping
-    public ResponseEntity<Appeal> create(@RequestBody Appeal appeal) {
-        return new ResponseEntity<>(appealService.createAppeal(appeal), HttpStatus.CREATED);
+    public ResponseEntity<AppealResponseDto> create(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @Valid @RequestBody AppealCreateDto createDto) {
+        return new ResponseEntity<>(appealService.createAppeal(createDto, currentUser.getUserEntity()), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Appeal>> getAll() {
+    public ResponseEntity<List<AppealResponseDto>> getAll(@AuthenticationPrincipal CustomUserDetails currentUser) {
         return ResponseEntity.ok(appealService.getAllAppeals());
     }
 
+
+    public ResponseEntity<List<AppealResponseDto>> getAllByUserId(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(appealService.getAllAppealsByUserId(currentUser.getId()));
+    }
+
+
+
     @GetMapping("/{id}")
-    public ResponseEntity<Appeal> getById(@PathVariable UUID id) {
+    public ResponseEntity<AppealResponseDto> getById(@AuthenticationPrincipal CustomUserDetails currentUser,
+                                                     @PathVariable UUID id) {
         return ResponseEntity.ok(appealService.getAppealById(id));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Appeal> patch(@PathVariable UUID id, @RequestBody Appeal appeal) {
-        return ResponseEntity.ok(appealService.patchAppeal(id, appeal));
+    public ResponseEntity<AppealResponseDto> patch(@AuthenticationPrincipal CustomUserDetails currentUser,
+                                                   @PathVariable UUID id,
+                                                   @Valid @RequestBody AppealUpdateDto updateDto) {
+        return ResponseEntity.ok(appealService.patchAppeal(id, updateDto,currentUser.getUserEntity().getId()));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        appealService.deleteAppeal(id);
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails currentUser,
+                                       @PathVariable UUID id) {
+        appealService.deleteAppeal(id, currentUser.getUserEntity().getId());
         return ResponseEntity.noContent().build();
     }
 }

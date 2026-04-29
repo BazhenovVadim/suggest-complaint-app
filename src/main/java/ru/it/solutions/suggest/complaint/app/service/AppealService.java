@@ -1,15 +1,19 @@
 package ru.it.solutions.suggest.complaint.app.service;
 
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealCreateDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealResponseDto;
-import ru.it.solutions.suggest.complaint.app.model.dto.AppealUpdateDto;
-import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
-import ru.it.solutions.suggest.complaint.app.model.enums.AppealStatus;
-import ru.it.solutions.suggest.complaint.app.repository.AppealRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
+import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
+import ru.it.solutions.suggest.complaint.app.model.enums.AppealStatus;
+import ru.it.solutions.suggest.complaint.app.model.mappers.AppealMapper;
+import ru.it.solutions.suggest.complaint.app.model.mappers.UserMapper;
+import ru.it.solutions.suggest.complaint.app.repository.AppealRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,104 +25,113 @@ import java.util.stream.Collectors;
 public class AppealService {
 
     private final AppealRepository appealRepository;
+    private final AppealMapper appealMapper;
+    private final UserService userService;
+    private final UserMapper userMapper;
 
-    // CREATE
     @Transactional
-    public AppealResponseDto createAppeal(AppealCreateDto createDto) {
-        log.info("Создание нового обращения");
+    public AppealResponseDto createAppeal(AppealCreateDto createDto, UserEntity user) {
+        log.info("Создание нового обращения пользователем: {}", user.getId());
 
         if (createDto.getPersonalDataConsent() == null || !createDto.getPersonalDataConsent()) {
             throw new IllegalArgumentException("Необходимо согласие на обработку персональных данных");
         }
 
-        Appeal appeal = Appeal.builder()
-                .type(createDto.getType())
-                .campusLocation(createDto.getCampusLocation())
-                .problemCategory(createDto.getProblemCategory())
-                .timeframe(createDto.getTimeframe())
-                .description(createDto.getDescription())
-                .filePath(createDto.getFilePath())
-                .fileName(createDto.getFileName())
-                .contactName(createDto.getContactName())
-                .contactPhone(createDto.getContactPhone())
-                .contactEmail(createDto.getContactEmail())
-                .personalDataConsent(createDto.getPersonalDataConsent())
-                .status(AppealStatus.NEW)
-                .build();
+        Appeal appeal = appealMapper.toEntity(createDto);
+        appeal.setAppealNumber(appealRepository.getNextAppealNumber());
+        appeal.setStatus(AppealStatus.NEW);
+        appeal.setUser(user);
 
         Appeal savedAppeal = appealRepository.save(appeal);
         log.info("Обращение создано с id: {}", savedAppeal.getId());
 
-        return mapToResponse(savedAppeal);
+        return appealMapper.toResponseDto(savedAppeal);
     }
 
-    // READ all
+    // READ all (для администратора - все обращения)
     public List<AppealResponseDto> getAllAppeals() {
+        log.info("Получение всех обращений");
         return appealRepository.findAll().stream()
-                .map(this::mapToResponse)
+                .map(appealMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    // READ by id
+    // READ all by user (получить все обращения конкретного пользователя)
+    public List<AppealResponseDto> getAllAppealsByUserId(UUID userId) {
+        log.info("Получение всех обращений пользователя: {}", userId);
+
+        // Проверяем, существует ли пользователь
+
+        UserEntity user = userService.getUserById(userId);
+        return appealRepository.findByUser(user).stream()
+                .map(appealMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    // READ by id (без проверки прав - можно смотреть любое обращение)
     public AppealResponseDto getAppealById(UUID id) {
-        Appeal appeal = appealRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Обращение не найдено с id: " + id));
-        return mapToResponse(appeal);
+        log.info("Получение обращения по id: {}", id);
+
+        Appeal appeal = getAppealEntityById(id);
+        return appealMapper.toResponseDto(appeal);
     }
 
-    // UPDATE (PATCH)
     @Transactional
-    public AppealResponseDto patchAppeal(UUID id, AppealUpdateDto updateDto) {
-        log.info("Обновление обращения с id: {}", id);
+    public AppealResponseDto patchAppeal(UUID id, AppealUpdateDto updateDto, UUID userId) {
+        log.info("Обновление обращения с id: {} пользователем: {}", id, userId);
 
-        Appeal appeal = appealRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Обращение не найдено с id: " + id));
+        // 1. Находим обращение
+        Appeal appeal = getAppealEntityById(id);
 
-        if (updateDto.getType() != null) appeal.setType(updateDto.getType());
-        if (updateDto.getCampusLocation() != null) appeal.setCampusLocation(updateDto.getCampusLocation());
-        if (updateDto.getProblemCategory() != null) appeal.setProblemCategory(updateDto.getProblemCategory());
-        if (updateDto.getTimeframe() != null) appeal.setTimeframe(updateDto.getTimeframe());
-        if (updateDto.getDescription() != null) appeal.setDescription(updateDto.getDescription());
-        if (updateDto.getFilePath() != null) appeal.setFilePath(updateDto.getFilePath());
-        if (updateDto.getFileName() != null) appeal.setFileName(updateDto.getFileName());
-        if (updateDto.getContactName() != null) appeal.setContactName(updateDto.getContactName());
-        if (updateDto.getContactPhone() != null) appeal.setContactPhone(updateDto.getContactPhone());
-        if (updateDto.getContactEmail() != null) appeal.setContactEmail(updateDto.getContactEmail());
-        if (updateDto.getPersonalDataConsent() != null) appeal.setPersonalDataConsent(updateDto.getPersonalDataConsent());
-        if (updateDto.getStatus() != null) appeal.setStatus(updateDto.getStatus());
+        // 2. ПРОВЕРКА ПРАВ: только автор может редактировать
+        checkAppealOwnership(appeal, userId);
 
+        // 3. Обновляем поля
+        appealMapper.updateEntity(appeal, updateDto);
+
+        // 4. Сохраняем
         Appeal updatedAppeal = appealRepository.save(appeal);
-        return mapToResponse(updatedAppeal);
+
+        log.info("Обращение {} обновлено пользователем {}", id, userId);
+        return appealMapper.toResponseDto(updatedAppeal);
     }
 
-    // DELETE
     @Transactional
-    public void deleteAppeal(UUID id) {
-        log.info("Удаление обращения с id: {}", id);
+    public void deleteAppeal(UUID id, UUID userId) {
+        log.info("Удаление обращения с id: {} пользователем: {}", id, userId);
 
-        if (!appealRepository.existsById(id)) {
-            throw new RuntimeException("Обращение не найдено с id: " + id);
-        }
+        // 1. Находим обращение
+        Appeal appeal = getAppealEntityById(id);
+
+        // 2. ПРОВЕРКА ПРАВ: только автор может удалить
+        checkAppealOwnership(appeal, userId);
+
+        // 3. Удаляем
         appealRepository.deleteById(id);
+
+        log.info("Обращение {} удалено пользователем {}", id, userId);
     }
 
-    // Маппер: Entity -> ResponseDto
-    private AppealResponseDto mapToResponse(Appeal appeal) {
-        return AppealResponseDto.builder()
-                .id(appeal.getId())
-                .type(appeal.getType())
-                .campusLocation(appeal.getCampusLocation())
-                .problemCategory(appeal.getProblemCategory())
-                .timeframe(appeal.getTimeframe())
-                .description(appeal.getDescription())
-                .filePath(appeal.getFilePath())
-                .fileName(appeal.getFileName())
-                .contactName(appeal.getContactName())
-                .contactPhone(appeal.getContactPhone())
-                .contactEmail(appeal.getContactEmail())
-                .personalDataConsent(appeal.getPersonalDataConsent())
-                .createdAt(appeal.getCreatedAt())
-                .status(appeal.getStatus())
-                .build();
+    // === ПРИВАТНЫЕ МЕТОДЫ ===
+
+    // Получить сущность Appeal по ID (с проверкой существования)
+    private Appeal getAppealEntityById(UUID id) {
+        return appealRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Обращение не найдено с id: " + id));
+    }
+
+    // Проверка прав: может ли пользователь изменять/удалять обращение
+    private void checkAppealOwnership(Appeal appeal, UUID userId) {
+        // Проверяем, есть ли привязанный пользователь у обращения
+        if (appeal.getUser() == null) {
+            throw new RuntimeException("У обращения нет привязанного пользователя");
+        }
+
+        // Сравниваем ID автора обращения с ID текущего пользователя
+        if (!appeal.getUser().getId().equals(userId)) {
+            log.warn("Попытка доступа к обращению {} пользователем {}, не являющимся автором",
+                    appeal.getId(), userId);
+            throw new RuntimeException("Доступ запрещен. Вы не являетесь автором обращения");
+        }
     }
 }

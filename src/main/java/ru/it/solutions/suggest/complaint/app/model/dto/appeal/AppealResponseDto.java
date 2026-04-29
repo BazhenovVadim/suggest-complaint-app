@@ -1,10 +1,10 @@
-package ru.it.solutions.suggest.complaint.app.model.dto;
+package ru.it.solutions.suggest.complaint.app.model.dto.appeal;
 
+import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.it.solutions.suggest.complaint.app.model.enums.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -14,7 +14,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppealResponseDto {
-
     private UUID id;
     private AppealType type;
     private LocationType campusLocation;
@@ -29,4 +28,6 @@ public class AppealResponseDto {
     private Boolean personalDataConsent;
     private Instant createdAt;
     private AppealStatus status;
+    private UUID userId;
+    private Integer appealNumber;
 }
