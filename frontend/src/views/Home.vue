@@ -1,13 +1,14 @@
 <script setup>
 import { ref } from "vue";
-import Option from "./Option.vue";
-import CategorySelect from "./CategorySelect.vue";
-import TextBox from "./TextBox.vue";
-import Input from "./Input.vue";
-import Button from "./Button.vue";
-import FileUpload from "./FileUpload.vue";
-import Checkbox from "./Checkbox.vue";
-import Toggle from "./Toggle.vue";
+
+import Option from "../components/Option.vue";
+import CategorySelect from "../components/CategorySelect.vue";
+import TextBox from "../components/TextBox.vue";
+import Input from "../components/Input.vue";
+import Button from "../components/Button.vue";
+import FileUpload from "../components/FileUpload.vue";
+import Checkbox from "../components/Checkbox.vue";
+import Toggle from "../components/Toggle.vue";
 
 const options = ["Жалоба", "Предложение", "Проблема с обучением", "Другое"];
 const categories = [
