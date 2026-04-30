@@ -17,10 +17,13 @@ const emit = defineEmits(["update:modelValue", "select"]);
 
 const open = ref(false);
 const containerRef = ref(null);
-const currentLabel = computed(() => props.modelValue || "Выбрать");
+const currentLabel = computed(() => {
+  const selected = props.categories.find((cat) => cat.id === props.modelValue);
+  return selected?.label || "Выбрать";
+});
 
 const selectCategory = (cat) => {
-  emit("update:modelValue", cat.label);
+  emit("update:modelValue", cat.id);
   emit("select", cat);
   open.value = false;
 };
