@@ -109,7 +109,6 @@ onMounted(() => {
 .category-select {
   position: relative;
   width: 100%;
-  max-width: 320px;
   font-family: var(--font-text);
   box-sizing: border-box;
   margin-top: 20px;
@@ -262,9 +261,6 @@ onMounted(() => {
 }
 
 @media (min-width: 768px) {
-  .category-select {
-    width: 320px;
-  }
   .select-trigger {
     padding: 20px 18px;
     font-size: 20px;

@@ -59,6 +59,7 @@ const selectedLocation = ref(null);
 const selectedCategory = ref(null);
 const selectedTimeframe = ref(null);
 const message = ref("");
+const attachments = ref([]);
 const name = ref("");
 const phone = ref("");
 const email = ref("");
@@ -127,6 +128,7 @@ const handleSubmit = async () => {
         selectedCategory.value = null;
         selectedTimeframe.value = null;
         message.value = "";
+        attachments.value = [];
         name.value = "";
         phone.value = "";
         email.value = "";
@@ -188,8 +190,8 @@ const handleSubmit = async () => {
                 <h2>Описание проблемы</h2>
                 <TextBox v-model="message" />
                 <div class="file-upload">
-                    <FileUpload />
-                    <p class="restrictions">Форматы: JPG, PNG, PDF до 10 МБ</p>
+                    <FileUpload v-model:files="attachments" :max-files="4" />
+                    <p class="restrictions">Форматы: JPG, PNG, HEIC, PDF. До 4 файлов, максимум 10 МБ каждый.</p>
                 </div>
             </div>
         </div>
@@ -338,6 +340,8 @@ p {
 
 p.restrictions {
     font-size: 14px;
+    margin-top: 8px;
+    max-width: 240px;
 }
 
 footer {
@@ -353,6 +357,7 @@ footer {
     }
     p.restrictions {
         font-size: 20px;
+        max-width: none;
     }
     .contacts-header {
         flex-direction: row;
