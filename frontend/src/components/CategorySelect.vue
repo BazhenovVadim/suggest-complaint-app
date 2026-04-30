@@ -25,15 +25,41 @@ const selectCategory = (cat) => {
   open.value = false;
 };
 
-// TEMPORARY
-const Icons = {
-  circle: '<circle cx="12" cy="12" r="8" stroke="#666" stroke-width="2" fill="none"/>',
-  gear: '<path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="#666" stroke-width="1.4" fill="none"/><path d="M19.4 15a7.9 7.9 0 0 0 .1-2 7.9 7.9 0 0 0-.1-2l2.1-1.6-2-3.4-2.5.6a8.1 8.1 0 0 0-1.7-1L14.5 1h-5l-.9 3.1a8.1 8.1 0 0 0-1.7 1L3.4 4.6 1.4 8l2.1 1.6a7.9 7.9 0 0 0 0 4L1.4 15l2 3.4 2.5-.6c.5.4 1 .7 1.7 1L9.5 23h5l.9-3.1c.6-.3 1.2-.7 1.7-1l2.5.6 2-3.4-2.1-1.6z" stroke="#666" stroke-width="1" fill="none"/>',
-  doc: '<path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="#666" stroke-width="1.3" fill="none"/><path d="M13 2v6h6" stroke="#666" stroke-width="1.3" fill="none"/>',
-  more: '<circle cx="5" cy="12" r="2" stroke="#666" stroke-width="1.4" fill="none"/><circle cx="12" cy="12" r="2" stroke="#666" stroke-width="1.4" fill="none"/><circle cx="19" cy="12" r="2" stroke="#666" stroke-width="1.4" fill="none"/>',
-};
+import MdiSchool from "~icons/mdi/school";
+import MdiHome from "~icons/mdi/home";
+import MdiOfficeBuilding from "~icons/mdi/office-building";
+import MdiLibraryBooks from "~icons/mdi/library-books";
+import MdiFoodForkDrink from "~icons/mdi/food-fork-drink";
+import MdiDumbbell from "~icons/mdi/dumbbell";
+import MdiHospitalBox from "~icons/mdi/hospital-box";
+import MdiWater from "~icons/mdi/water";
+import MdiLightningBolt from "~icons/mdi/lightning-bolt";
+import MdiFire from "~icons/mdi/fire";
+import MdiBroom from "~icons/mdi/broom";
+import MdiVolumeHigh from "~icons/mdi/volume-high";
+import MdiWrench from "~icons/mdi/wrench";
+import MdiSofa from "~icons/mdi/sofa";
+import MdiWifi from "~icons/mdi/wifi";
+import MdiCircleMedium  from "~icons/mdi/circle-medium";
 
-const getSvg = (icon) => Icons[icon] || Icons.more;
+const Icons = {
+  "mdi-school": MdiSchool,
+  "mdi-home": MdiHome,
+  "mdi-office-building": MdiOfficeBuilding,
+  "mdi-library-books": MdiLibraryBooks,
+  "mdi-food-fork-drink": MdiFoodForkDrink,
+  "mdi-dumbbell": MdiDumbbell,
+  "mdi-hospital-box": MdiHospitalBox,
+  "mdi-water": MdiWater,
+  "mdi-lightning-bolt": MdiLightningBolt,
+  "mdi-fire": MdiFire,
+  "mdi-broom": MdiBroom,
+  "mdi-volume-high": MdiVolumeHigh,
+  "mdi-wrench": MdiWrench,
+  "mdi-sofa": MdiSofa,
+  "mdi-wifi": MdiWifi,
+  "mdi-circle-medium": MdiCircleMedium,
+};
 
 onMounted(() => {
   document.addEventListener("click", (e) => {
@@ -67,7 +93,7 @@ onMounted(() => {
           @click="selectCategory(cat)"
         >
           <span class="icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" v-html="getSvg(cat.icon)"></svg>
+            <component :is="Icons[cat.icon] || Icons['mdi-circle-medium']" class="icon-svg" />
           </span>
           <span class="text">{{ cat.label }}</span>
         </li>
@@ -201,6 +227,11 @@ onMounted(() => {
   justify-content: center;
   flex: 0 0 28px;
   color: var(--color-font);
+}
+
+.icon-svg {
+  width: 20px;
+  height: 20px;
 }
 
 .text {

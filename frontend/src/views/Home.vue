@@ -15,33 +15,33 @@ import ProfileMenu from "../components/ProfileMenu.vue";
 const isAuthenticated = ref(!!localStorage.getItem('accessToken')); 
 
 const typeOptions = [
-    { value: "COMPLAINT", label: "Жалоба" },
-    { value: "SUGGESTION", label: "Предложение" },
-    { value: "QUESTION", label: "Вопрос" },
-    { value: "REQUEST", label: "Запрос" },
+    { value: "COMPLAINT", label: "Жалоба", icon: "mdi-flag" },
+    { value: "SUGGESTION", label: "Предложение", icon: "mdi-lightbulb" },
+    { value: "QUESTION", label: "Вопрос", icon: "mdi-book" },
+    { value: "REQUEST", label: "Запрос", icon: "mdi-dots-horizontal" },
 ];
 
 const locationOptions = [
-    { id: "STUDENT_CAMPUS", label: "Студгородок", icon: "circle" },
-    { id: "DORMITORY", label: "Общежитие", icon: "home" },
-    { id: "ACADEMIC_BUILDING", label: "Учебный корпус", icon: "doc" },
-    { id: "LIBRARY", label: "Библиотека", icon: "book" },
-    { id: "CANTEEN", label: "Столовая", icon: "utensils" },
-    { id: "SPORTS_COMPLEX", label: "Спорткомплекс", icon: "dumbbell" },
-    { id: "MEDICAL_CENTER", label: "Медпункт", icon: "heart" },
+    { id: "STUDENT_CAMPUS", label: "Студгородок", icon: "mdi-school" },
+    { id: "DORMITORY", label: "Общежитие", icon: "mdi-home" },
+    { id: "ACADEMIC_BUILDING", label: "Учебный корпус", icon: "mdi-office-building" },
+    { id: "LIBRARY", label: "Библиотека", icon: "mdi-library-books" },
+    { id: "CANTEEN", label: "Столовая", icon: "mdi-food-fork-drink" },
+    { id: "SPORTS_COMPLEX", label: "Спорткомплекс", icon: "mdi-dumbbell" },
+    { id: "MEDICAL_CENTER", label: "Медпункт", icon: "mdi-hospital-box" },
 ];
 
 const categoryOptions = [
-    { id: "ACCOMMODATION", label: "Расселение", icon: "home" },
-    { id: "BATHROOM", label: "Санузел", icon: "water" },
-    { id: "ELECTRICITY", label: "Электричество", icon: "zap" },
-    { id: "HEATING", label: "Отопление", icon: "fire" },
-    { id: "CLEANLINESS", label: "Чистота", icon: "sparkles" },
-    { id: "NOISE", label: "Шум", icon: "volume" },
-    { id: "PLUMBING", label: "Сантехника", icon: "wrench" },
-    { id: "FURNITURE", label: "Мебель", icon: "chair" },
-    { id: "INTERNET", label: "Интернет", icon: "wifi" },
-    { id: "OTHER", label: "Другое", icon: "more" },
+    { id: "ACCOMMODATION", label: "Расселение", icon: "mdi-home" },
+    { id: "BATHROOM", label: "Санузел", icon: "mdi-water" },
+    { id: "ELECTRICITY", label: "Электричество", icon: "mdi-lightning-bolt" },
+    { id: "HEATING", label: "Отопление", icon: "mdi-fire" },
+    { id: "CLEANLINESS", label: "Чистота", icon: "mdi-broom" },
+    { id: "NOISE", label: "Шум", icon: "mdi-volume-high" },
+    { id: "PLUMBING", label: "Сантехника", icon: "mdi-wrench" },
+    { id: "FURNITURE", label: "Мебель", icon: "mdi-sofa" },
+    { id: "INTERNET", label: "Интернет", icon: "mdi-wifi" },
+    { id: "OTHER", label: "Другое", icon: "mdi-dots-horizontal" },
 ];
 
 const timeframeOptions = [
@@ -161,6 +161,7 @@ const handleSubmit = async () => {
                         v-for="option in typeOptions"
                         :key="option.value"
                         :label="option.label"
+                        :icon="option.icon"
                         :selected="option.value === selectedType"
                         @select="selectedType = option.value"
                     />
@@ -360,9 +361,6 @@ footer {
     }
     .categories {
         flex-direction: row;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
     }
     .inputs {
         grid-template-columns: 1fr 1fr;

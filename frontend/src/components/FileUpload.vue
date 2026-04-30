@@ -1,4 +1,6 @@
 <script setup>
+import MdiPaperclip from '~icons/mdi/paperclip'
+
 const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -29,6 +31,7 @@ const handleFileChange = (event) => {
 
 <template>
     <label class="file-upload">
+        <MdiPaperclip class="clip" />
         <input
             type="file"
             accept="image/jpeg,image/png,image/heic,application/pdf"
@@ -51,13 +54,19 @@ const handleFileChange = (event) => {
     font-size: 16px;
     color: #2f2f2f;
     cursor: pointer;
-    display: inline-block;
-    min-width: 170px;
+    display: flex;
+    align-items: center;
+    width: 200px;
+    gap: 10px;
     transition: background 0.2s ease;
 }
 
 .file-upload:hover {
     background: var(--color-bg-option-selected);
+}
+
+.clip {
+    transform: rotate(45deg);
 }
 
 input[type="file"] {
@@ -67,6 +76,7 @@ input[type="file"] {
 @media (min-width: 768px) {
     .file-upload {
         font-size: 20px;
+        width: 240px;
     }
 }
 </style>

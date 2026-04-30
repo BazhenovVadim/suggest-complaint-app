@@ -1,7 +1,22 @@
 <script setup>
+import MdiFlag from '~icons/mdi/flag-variant'
+import MdiLightbulb from '~icons/mdi/lightbulb-on-outline'
+import MdiBook from '~icons/mdi/book-open-blank-variant-outline'
+import MdiDotsHorizontal from '~icons/mdi/dots-horizontal'
+import MdiCircleMedium  from "~icons/mdi/circle-medium";
+
+const Icons = {
+    "mdi-flag": MdiFlag,
+    "mdi-lightbulb": MdiLightbulb,
+    "mdi-book": MdiBook,
+    "mdi-dots-horizontal": MdiDotsHorizontal,
+    "mdi-circle-medium": MdiCircleMedium,
+}
+
 const props = defineProps({
     label: String,
     selected: Boolean,
+    icon: String,
 });
 const emit = defineEmits(["select"]);
 </script>
@@ -12,9 +27,7 @@ const emit = defineEmits(["select"]);
         :class="{ selected: props.selected }"
         @click="emit('select')"
     >
-        <div>
-            <slot name="icon" />
-        </div>
+        <component :is="Icons[props.icon] || Icons['mdi-circle-medium']" />
         {{ props.label }}
     </button>
 </template>
@@ -33,6 +46,8 @@ const emit = defineEmits(["select"]);
     display: flex;
     flex-grow: 1;
     justify-content: center;
+    align-items: center;
+    gap: 7px;
 }
 
 .option:hover {
