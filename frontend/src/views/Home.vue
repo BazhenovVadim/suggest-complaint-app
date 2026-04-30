@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from "vue";
+import axios from "axios";
 
 import Option from "../components/Option.vue";
 import CategorySelect from "../components/CategorySelect.vue";
@@ -9,36 +10,141 @@ import Button from "../components/Button.vue";
 import FileUpload from "../components/FileUpload.vue";
 import Checkbox from "../components/Checkbox.vue";
 import Toggle from "../components/Toggle.vue";
+import ProfileMenu from "../components/ProfileMenu.vue";
 
-const options = ["Жалоба", "Предложение", "Проблема с обучением", "Другое"];
-const categories = [
-    { id: 1, label: "Общие вопросы", icon: "circle" },
-    { id: 2, label: "Тех. поддержка", icon: "gear" },
-    { id: 3, label: "Проблема с контентом", icon: "doc" },
-    { id: 4, label: "Другое", icon: "more" },
+const isAuthenticated = ref(!!localStorage.getItem('accessToken')); 
+
+const typeOptions = [
+    { value: "COMPLAINT", label: "Жалоба" },
+    { value: "SUGGESTION", label: "Предложение" },
+    { value: "QUESTION", label: "Вопрос" },
+    { value: "REQUEST", label: "Запрос" },
 ];
-const subcategories = [
-    { id: 1, label: "Учебный план", icon: "doc" },
-    { id: 2, label: "Платформа", icon: "gear" },
-    { id: 3, label: "Оплата", icon: "circle" },
-    { id: 4, label: "Система оценок", icon: "more" },
+
+const locationOptions = [
+    { id: "STUDENT_CAMPUS", label: "Студгородок", icon: "circle" },
+    { id: "DORMITORY", label: "Общежитие", icon: "home" },
+    { id: "ACADEMIC_BUILDING", label: "Учебный корпус", icon: "doc" },
+    { id: "LIBRARY", label: "Библиотека", icon: "book" },
+    { id: "CANTEEN", label: "Столовая", icon: "utensils" },
+    { id: "SPORTS_COMPLEX", label: "Спорткомплекс", icon: "dumbbell" },
+    { id: "MEDICAL_CENTER", label: "Медпункт", icon: "heart" },
 ];
-const selectedType = ref(options[0]);
+
+const categoryOptions = [
+    { id: "ACCOMMODATION", label: "Расселение", icon: "home" },
+    { id: "BATHROOM", label: "Санузел", icon: "water" },
+    { id: "ELECTRICITY", label: "Электричество", icon: "zap" },
+    { id: "HEATING", label: "Отопление", icon: "fire" },
+    { id: "CLEANLINESS", label: "Чистота", icon: "sparkles" },
+    { id: "NOISE", label: "Шум", icon: "volume" },
+    { id: "PLUMBING", label: "Сантехника", icon: "wrench" },
+    { id: "FURNITURE", label: "Мебель", icon: "chair" },
+    { id: "INTERNET", label: "Интернет", icon: "wifi" },
+    { id: "OTHER", label: "Другое", icon: "more" },
+];
+
+const timeframeOptions = [
+    { id: "ONE_DAY", label: "1 день" },
+    { id: "TWO_DAYS", label: "2 дня" },
+    { id: "THREE_DAYS", label: "3 дня" },
+    { id: "FIVE_DAYS", label: "5 дней" },
+    { id: "ONE_WEEK", label: "1 неделя" },
+    { id: "TWO_WEEKS", label: "2 недели" },
+    { id: "ONE_MONTH", label: "1 месяц" },
+];
+
+const selectedType = ref("COMPLAINT");
+const selectedLocation = ref(null);
 const selectedCategory = ref(null);
-const selectedSubcategory = ref(null);
+const selectedTimeframe = ref(null);
 const message = ref("");
 const name = ref("");
 const phone = ref("");
 const email = ref("");
 const anonymous = ref(false);
 const consent = ref(false);
+
+const handleSubmit = async () => {
+    if (!isAuthenticated.value) {
+        alert('Необходимо войти в систему для отправки обращения');
+        return;
+    }
+
+    if (!selectedLocation.value) {
+        alert('Выберите место обращения');
+        return;
+    }
+
+    if (!selectedCategory.value) {
+        alert('Выберите категорию проблемы');
+        return;
+    }
+
+    if (!message.value.trim()) {
+        alert('Опишите вашу проблему');
+        return;
+    }
+
+    if (!consent.value) {
+        alert('Необходимо согласие на обработку персональных данных');
+        return;
+    }
+
+    if (!anonymous.value && (!name.value.trim() || !email.value.trim())) {
+        alert('Заполните контактные данные или включите анонимную отправку');
+        return;
+    }
+
+    try {
+        const accessToken = localStorage.getItem('accessToken');
+        const appealData = {
+            type: selectedType.value,
+            campusLocation: selectedLocation.value,
+            problemCategory: selectedCategory.value,
+            timeframe: selectedTimeframe.value || null,
+            description: message.value.trim(),
+            contactName: anonymous.value ? null : name.value,
+            contactPhone: anonymous.value ? null : phone.value,
+            contactEmail: anonymous.value ? null : email.value,
+            personalDataConsent: consent.value,
+        };
+
+        const response = await axios.post(
+            'http://localhost:8080/api/appeals',
+            appealData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        
+        // Form cleanup
+        selectedType.value = "COMPLAINT";
+        selectedLocation.value = null;
+        selectedCategory.value = null;
+        selectedTimeframe.value = null;
+        message.value = "";
+        name.value = "";
+        phone.value = "";
+        email.value = "";
+        anonymous.value = false;
+        consent.value = false;
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Ошибка при отправке обращения';
+        alert(`Ошибка: ${errorMessage}`);
+        console.error('Ошибка при отправке обращения:', error);
+    }
+};
 </script>
 
 <template>
     <main class="main">
         <div class="header">
             <img src="../assets/prof.jpg" class="logo" />
-            <a href="/login">кнопка</a>
+            <ProfileMenu />
         </div>
         <div class="greet">
             <h1>Напишите о своей проблеме</h1>
@@ -52,23 +158,28 @@ const consent = ref(false);
                 <h2>Тип обращения</h2>
                 <div class="options">
                     <Option
-                        v-for="option in options"
-                        :key="option"
-                        :label="option"
-                        :selected="option === selectedType"
-                        @select="selectedType = option"
+                        v-for="option in typeOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :selected="option.value === selectedType"
+                        @select="selectedType = option.value"
                     />
                 </div>
                 <div class="categories">
                     <CategorySelect
+                        v-model="selectedLocation"
+                        :categories="locationOptions"
+                        label="Место обращения"
+                    />
+                    <CategorySelect
                         v-model="selectedCategory"
-                        :categories="categories"
+                        :categories="categoryOptions"
                         label="Категория"
                     />
                     <CategorySelect
-                        v-model="selectedSubcategory"
-                        :categories="subcategories"
-                        label="Подкатегория"
+                        v-model="selectedTimeframe"
+                        :categories="timeframeOptions"
+                        label="Сроки решения (опционально)"
                     />
                 </div>
             </div>
@@ -114,7 +225,7 @@ const consent = ref(false);
                 v-model="consent"
                 label="Я согласен на обработку персональных данных"
             />
-            <Button>Отправить обращение</Button>
+            <Button @click="handleSubmit">Отправить обращение</Button>
         </div>
     </main>
     <footer>Ну футер там и т.д.</footer>
@@ -143,7 +254,7 @@ const consent = ref(false);
 }
 
 .logo {
-    max-width: 130px;
+    max-width: 150px;
     height: auto;
 }
 
@@ -236,6 +347,9 @@ footer {
     .main {
         padding: 35px;
     }
+    .dropdown a {
+        font-size: 20px;
+    }
     p.restrictions {
         font-size: 20px;
     }
@@ -246,6 +360,9 @@ footer {
     }
     .categories {
         flex-direction: row;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
     }
     .inputs {
         grid-template-columns: 1fr 1fr;
