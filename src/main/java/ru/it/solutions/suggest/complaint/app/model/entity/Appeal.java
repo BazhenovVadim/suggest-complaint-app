@@ -28,7 +28,7 @@ public class Appeal {
     private AppealType type;
 
     @Column(updatable = false)
-    private Integer appealNumber;
+    private Long appealNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

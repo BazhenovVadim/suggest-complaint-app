@@ -14,8 +14,8 @@ import java.util.UUID;
 public interface AppealRepository extends JpaRepository<Appeal, UUID> {
 
     // Получить следующий номер обращения (из sequence)
-    @Query(value = "SELECT nextval('appeal_number_seq')::int", nativeQuery = true)
-    Integer getNextAppealNumber();
+    @Query(value = "SELECT nextval('appeal_number_seq')", nativeQuery = true)
+    Long getNextAppealNumber();
 
     // Поиск всех обращений пользователя (по Entity)
     List<Appeal> findByUser(UserEntity user);
