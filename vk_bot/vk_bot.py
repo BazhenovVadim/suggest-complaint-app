@@ -98,6 +98,14 @@ class LocationType(str, Enum):
     NOT_APPLICABLE = "Не применимо"
 
 
+LOCATION_TYPE_TO_BACKEND = {
+    LocationType.CAMPUS: "STUDENT_CAMPUS",
+    LocationType.DORMITORY: "DORMITORY",
+    LocationType.EDUCATIONAL_CORPUS: "ACADEMIC_BUILDING",
+    LocationType.NOT_APPLICABLE: "STUDENT_CAMPUS",
+}
+
+
 class ProblemCategory(str, Enum):
     RESETTLEMENT = "Расселение"
     BATHROOM = "Санузел"
@@ -105,6 +113,37 @@ class ProblemCategory(str, Enum):
     PLUMBING = "Сантехника"
     OTHER = "Другое"
     NOT_APPLICABLE = "Не применимо"
+
+
+PROBLEM_CATEGORY_TO_BACKEND = {
+    ProblemCategory.RESETTLEMENT: "ACCOMMODATION",
+    ProblemCategory.BATHROOM: "BATHROOM",
+    ProblemCategory.ELECTRICITY: "ELECTRICITY",
+    ProblemCategory.PLUMBING: "PLUMBING",
+    ProblemCategory.OTHER: "OTHER",
+    ProblemCategory.NOT_APPLICABLE: "OTHER",
+}
+
+
+class Timeframe(str, Enum):
+    ONE_DAY = "В течение дня"
+    UP_TO_3_DAYS = "До 3 дней"
+    ONE_WEEK = "В течение недели"
+    NOT_URGENT = "Не срочно"
+
+
+TIMEFRAME_TO_BACKEND = {
+    Timeframe.ONE_DAY: "ONE_DAY",
+    Timeframe.UP_TO_3_DAYS: "THREE_DAYS",
+    Timeframe.ONE_WEEK: "ONE_WEEK",
+    Timeframe.NOT_URGENT: "TWO_WEEKS",
+}
+
+
+APPEAL_TYPE_TO_BACKEND = {
+    AppealType.COMPLAINT: "COMPLAINT",
+    AppealType.SUGGESTION: "SUGGESTION",
+}
 
 
 class AppealStatus(str, Enum):
@@ -117,19 +156,19 @@ class AppealStatus(str, Enum):
 class Appeal:
     type: AppealType
     description: str
-    personal_data_consent: bool
-    vk_user_id: int
+    personalDataConsent: bool
+    vkUserId: int
 
-    campus_location: LocationType = LocationType.NOT_APPLICABLE
-    problem_category: ProblemCategory = ProblemCategory.NOT_APPLICABLE
-    timeframe: Optional[str] = None
+    campusLocation: LocationType = LocationType.NOT_APPLICABLE
+    problemCategory: ProblemCategory = ProblemCategory.NOT_APPLICABLE
+    timeframe: Optional[Timeframe] = None
 
     id: Optional[str] = None
-    file_path: Optional[str] = None
-    file_name: Optional[str] = None
-    contact_name: Optional[str] = None
-    contact_phone: Optional[str] = None
-    contact_email: Optional[str] = None
+    filePath: Optional[str] = None
+    fileName: Optional[str] = None
+    contactName: Optional[str] = None
+    contactPhone: Optional[str] = None
+    contactEmail: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
     status: AppealStatus = AppealStatus.NEW
 
@@ -137,16 +176,15 @@ class Appeal:
         data = {
             "type": enum_to_backend(self.type),
             "description": self.description,
-            "personalDataConsent": self.personal_data_consent,
-            "vkUserId": self.vk_user_id,
-            "campusLocation": enum_to_backend(self.campus_location),
-            "problemCategory": enum_to_backend(self.problem_category),
-            "timeframe": self.timeframe,
-            "filePath": self.file_path,
-            "fileName": self.file_name,
-            "contactName": self.contact_name,
-            "contactPhone": self.contact_phone,
-            "contactEmail": self.contact_email,
+            "personalDataConsent": self.personalDataConsent,
+            "campusLocation": enum_to_backend(self.campusLocation),
+            "problemCategory": enum_to_backend(self.problemCategory),
+            "timeframe": enum_to_backend(self.timeframe),
+            "filePath": self.filePath,
+            "fileName": self.fileName,
+            "contactName": self.contactName,
+            "contactPhone": self.contactPhone,
+            "contactEmail": self.contactEmail,
         }
 
         if self.id is not None:
@@ -308,10 +346,10 @@ LOCATION_CATEGORIES: Dict[LocationType, List[ProblemCategory]] = {
 }
 
 VALID_TIMEFRAMES = [
-    "В течение дня",
-    "До 3 дней",
-    "В течение недели",
-    "Не срочно",
+    Timeframe.ONE_DAY.value,
+    Timeframe.UP_TO_3_DAYS.value,
+    Timeframe.ONE_WEEK.value,
+    Timeframe.NOT_URGENT.value,
 ]
 
 SENSITIVE_KEYS = {
@@ -656,6 +694,18 @@ def enum_to_backend(value: Optional[Enum]) -> Optional[str]:
     if value is None:
         return None
 
+    if isinstance(value, AppealType):
+        return APPEAL_TYPE_TO_BACKEND.get(value, value.name)
+
+    if isinstance(value, LocationType):
+        return LOCATION_TYPE_TO_BACKEND.get(value, value.name)
+
+    if isinstance(value, ProblemCategory):
+        return PROBLEM_CATEGORY_TO_BACKEND.get(value, value.name)
+
+    if isinstance(value, Timeframe):
+        return TIMEFRAME_TO_BACKEND.get(value, value.name)
+
     if APPEAL_ENUM_FORMAT == "value":
         return value.value
 
@@ -928,8 +978,8 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
     )
 
     result = {
-        "contact_name": build_full_name(user_data),
-        "contact_phone": get_first_present(
+        "contactName": build_full_name(user_data),
+        "contactPhone": get_first_present(
             user_data,
             "contact_phone",
             "contactPhone",
@@ -937,8 +987,8 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
             "phoneNumber",
             "phone_number",
         ),
-        "contact_email": contact_email,
-        "personal_data_consent": consent,
+        "contactEmail": contact_email,
+        "personalDataConsent": consent,
     }
 
     log_event(
@@ -1004,7 +1054,7 @@ async def read_response_payload(response: aiohttp.ClientResponse) -> Any:
         return text
 
 
-def parse_registration_payload(payload: Any) -> RegistrationResult:
+def parse_registration_payload(payload: Any, vk_user_id: Optional[int] = None) -> RegistrationResult:
     log_event(
         logging.DEBUG,
         "registration_payload_parse_started",
@@ -1052,6 +1102,18 @@ def parse_registration_payload(payload: Any) -> RegistrationResult:
 
         if registered is None:
             registered = bool(user_data)
+
+        # Извлекаем и сохраняем access token
+        if vk_user_id and registered:
+            access_token = payload.get("accessToken")
+            if access_token:
+                access_tokens[vk_user_id] = access_token
+                log_event(
+                    logging.INFO,
+                    "access_token_saved",
+                    vk_user_id=vk_user_id,
+                    token_length=len(access_token) if not LOG_SENSITIVE_DATA else len(access_token),
+                )
 
         result = RegistrationResult(
             request_ok=True,
@@ -1126,7 +1188,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
                     )
 
                 payload = await read_response_payload(response)
-                result = parse_registration_payload(payload)
+                result = parse_registration_payload(payload, vk_user_id)
 
                 log_event(
                     logging.INFO,
@@ -1161,28 +1223,42 @@ async def send_to_backend(appeal: Appeal) -> bool:
         logging.INFO,
         "appeal_send_started",
         url=url,
-        vk_user_id=appeal.vk_user_id,
+        vk_user_id=appeal.vkUserId,
         appeal_type=appeal.type,
-        campus_location=appeal.campus_location,
-        problem_category=appeal.problem_category,
+        campusLocation=appeal.campusLocation,
+        problemCategory=appeal.problemCategory,
         body=safe_payload(body),
     )
+
+    # Получаем access token для пользователя
+    access_token = access_tokens.get(appeal.vkUserId)
+    if not access_token:
+        log_event(
+            logging.WARNING,
+            "appeal_send_no_access_token",
+            vk_user_id=appeal.vkUserId,
+        )
+
+    # Подготавливаем заголовки
+    headers = {
+        "Accept": "application/json",
+    }
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
 
     try:
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.post(
                 url,
                 json=body,
-                headers={
-                    "Accept": "application/json",
-                },
+                headers=headers,
             ) as response:
                 response_text = await response.text()
 
                 log_event(
                     logging.INFO,
                     "appeal_send_response_received",
-                    vk_user_id=appeal.vk_user_id,
+                    vk_user_id=appeal.vkUserId,
                     status=response.status,
                     content_type=response.headers.get("Content-Type"),
                     body=safe_http_body(response_text),
@@ -1193,7 +1269,7 @@ async def send_to_backend(appeal: Appeal) -> bool:
                     log_event(
                         logging.INFO,
                         "appeal_send_success",
-                        vk_user_id=appeal.vk_user_id,
+                        vk_user_id=appeal.vkUserId,
                         status=response.status,
                     )
                     return True
@@ -1201,7 +1277,7 @@ async def send_to_backend(appeal: Appeal) -> bool:
                 log_event(
                     logging.ERROR,
                     "appeal_send_bad_status",
-                    vk_user_id=appeal.vk_user_id,
+                    vk_user_id=appeal.vkUserId,
                     status=response.status,
                     request_body=safe_payload(body),
                     response_body=safe_http_body(response_text, force=LOG_ERROR_HTTP_BODIES),
@@ -1212,7 +1288,7 @@ async def send_to_backend(appeal: Appeal) -> bool:
     except (aiohttp.ClientError, asyncio.TimeoutError):
         log_exception(
             "appeal_send_exception",
-            vk_user_id=appeal.vk_user_id,
+            vk_user_id=appeal.vkUserId,
             url=url,
             request_body=safe_payload(body),
         )
@@ -1223,7 +1299,7 @@ async def save_appeal_to_db(appeal: Appeal) -> bool:
     log_event(
         logging.INFO,
         "appeal_save_started",
-        vk_user_id=appeal.vk_user_id,
+        vk_user_id=appeal.vkUserId,
         appeal_type=appeal.type,
     )
 
@@ -1232,7 +1308,7 @@ async def save_appeal_to_db(appeal: Appeal) -> bool:
     log_event(
         logging.INFO if result else logging.ERROR,
         "appeal_save_finished",
-        vk_user_id=appeal.vk_user_id,
+        vk_user_id=appeal.vkUserId,
         success=result,
     )
 
@@ -1269,41 +1345,37 @@ async def build_appeal_from_payload(
         AppealType.SUGGESTION,
     )
 
-    campus_location = enum_from_payload(
+    campusLocation = enum_from_payload(
         LocationType,
-        payload.get("campus_location"),
+        payload.get("campusLocation"),
         LocationType.NOT_APPLICABLE,
     )
 
-    problem_category = enum_from_payload(
+    problemCategory = enum_from_payload(
         ProblemCategory,
-        payload.get("problem_category"),
+        payload.get("problemCategory"),
         ProblemCategory.NOT_APPLICABLE,
     )
 
-    if appeal_type == AppealType.SUGGESTION:
-        log_event(
-            logging.DEBUG,
-            "appeal_build_suggestion_location_fields_reset",
-            vk_user_id=vk_user_id,
-        )
-
-        campus_location = LocationType.NOT_APPLICABLE
-        problem_category = ProblemCategory.NOT_APPLICABLE
+    timeframe = enum_from_payload(
+        Timeframe,
+        payload.get("timeframe"),
+        None,
+    )
 
     user_fields = get_user_contact_fields(registration.data)
 
     appeal = Appeal(
         type=appeal_type,
         description=str(payload.get("description", "")).strip(),
-        personal_data_consent=user_fields["personal_data_consent"],
-        vk_user_id=vk_user_id,
-        campus_location=campus_location,
-        problem_category=problem_category,
-        timeframe=payload.get("timeframe"),
-        contact_name=user_fields["contact_name"],
-        contact_phone=user_fields["contact_phone"],
-        contact_email=user_fields["contact_email"],
+        personalDataConsent=user_fields["personalDataConsent"],
+        vkUserId=vk_user_id,
+        campusLocation=campusLocation,
+        problemCategory=problemCategory,
+        timeframe=timeframe,
+        contactName=user_fields["contactName"],
+        contactPhone=user_fields["contactPhone"],
+        contactEmail=user_fields["contactEmail"],
     )
 
     log_event(
@@ -1311,8 +1383,8 @@ async def build_appeal_from_payload(
         "appeal_build_finished",
         vk_user_id=vk_user_id,
         appeal_type=appeal.type,
-        campus_location=appeal.campus_location,
-        problem_category=appeal.problem_category,
+        campusLocation=appeal.campusLocation,
+        problemCategory=appeal.problemCategory,
         contact_fields=safe_payload(user_fields),
     )
 
@@ -1442,6 +1514,9 @@ registration_check_locks: Dict[int, asyncio.Lock] = {}
 processed_registration_check_messages: set[tuple] = set()
 processed_registration_check_message_order: List[tuple] = []
 PROCESSED_REGISTRATION_CHECK_LIMIT = 1000
+
+# Хранилище access tokens для каждого пользователя
+access_tokens: Dict[int, str] = {}
 
 
 def get_registration_check_lock(vk_user_id: int) -> asyncio.Lock:
@@ -1878,7 +1953,7 @@ async def back_action(message: Message):
     if current_state == AppealState.WAITING_FOR_TIMEFRAME:
         location = enum_from_payload(
             LocationType,
-            payload.get("campus_location"),
+            payload.get("campusLocation"),
             LocationType.NOT_APPLICABLE,
         )
 
@@ -1915,6 +1990,7 @@ async def back_action(message: Message):
                 message,
                 AppealState.WAITING_FOR_TYPE,
                 reason="back_from_suggestion_description_to_type",
+                **payload,
             )
             await send_answer(
                 message,
@@ -2108,7 +2184,7 @@ async def type_handler(message: Message):
         )
         await send_answer(
             message,
-            "Опишите ваше предложение:",
+            "Опишите суть вашего предложения:",
             keyboard=get_navigation_kb(),
             event="suggestion_description_requested",
         )
@@ -2166,7 +2242,7 @@ async def location_handler(message: Message):
         return
 
     payload = (message.state_peer.payload or {}).copy()
-    payload["campus_location"] = location.value
+    payload["campusLocation"] = location.value
 
     await set_state(
         message,
@@ -2193,7 +2269,7 @@ async def category_handler(message: Message):
 
     location = enum_from_payload(
         LocationType,
-        payload.get("campus_location"),
+        payload.get("campusLocation"),
         LocationType.NOT_APPLICABLE,
     )
 
@@ -2248,7 +2324,7 @@ async def category_handler(message: Message):
         )
         return
 
-    payload["problem_category"] = category.value
+    payload["problemCategory"] = category.value
 
     await set_state(
         message,
