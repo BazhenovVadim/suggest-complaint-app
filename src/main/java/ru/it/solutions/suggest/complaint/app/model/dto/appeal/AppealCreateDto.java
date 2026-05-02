@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -28,8 +30,8 @@ public class AppealCreateDto {
     @NotBlank(message = "Описание проблемы обязательно")
     private String description;
 
-    private String filePath;
-    private String fileName;
+    @Builder.Default
+    private List<String> attachments = new ArrayList<>();
 
     private String contactName;
     private String contactPhone;

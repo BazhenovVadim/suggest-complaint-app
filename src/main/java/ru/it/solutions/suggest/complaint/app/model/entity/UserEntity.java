@@ -38,6 +38,15 @@ public class UserEntity {
     private String refreshTokenHash;
     private Instant refreshTokenExpiry;
 
+    @Column(name = "firstname", length = 100)
+    private String firstname;
+
+    @Column(name = "middlename", length = 100)
+    private String middlename;
+
+    @Column(name = "lastname", length = 100)
+    private String lastname;
+
     @OneToMany(mappedBy = "user")
     private List<Appeal> appeals;
 
