@@ -1,19 +1,19 @@
 <script setup>
 const props = defineProps({
     modelValue: Boolean,
-    label: String
-})
+    label: String,
+});
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(["update:modelValue"]);
 </script>
 
 <template>
     <div class="toggle-wrapper">
         <input
-        type="checkbox"
-        :checked="modelValue"
-        @change="emit('update:modelValue', $event.target.checked)"
-        class="toggle-input"
+            type="checkbox"
+            :checked="modelValue"
+            @change="emit('update:modelValue', $event.target.checked)"
+            class="toggle-input"
         />
         <span class="toggle-slider"></span>
         <label class="toggle-label">{{ label }}</label>
@@ -59,7 +59,7 @@ const emit = defineEmits(['update:modelValue'])
 }
 
 .toggle-input::before {
-    content: '';
+    content: "";
     position: absolute;
     width: 26px;
     height: 26px;
@@ -67,7 +67,9 @@ const emit = defineEmits(['update:modelValue'])
     background: white;
     top: 2px;
     left: 2px;
-    transition: left 0.3s ease, box-shadow 0.3s ease;
+    transition:
+        left 0.3s ease,
+        box-shadow 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 

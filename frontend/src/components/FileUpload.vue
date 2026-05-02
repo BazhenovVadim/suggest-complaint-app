@@ -1,8 +1,8 @@
 <script setup>
-import MdiPaperclip from '~icons/mdi/paperclip'
-import MdiCloseCircle from '~icons/mdi/close-circle'
-import MdiFilePdfBox from '~icons/mdi/file-pdf-box'
-import MdiFileImageOutline from '~icons/mdi/file-image-outline'
+import MdiPaperclip from "~icons/mdi/paperclip";
+import MdiCloseCircle from "~icons/mdi/close-circle";
+import MdiFilePdfBox from "~icons/mdi/file-pdf-box";
+import MdiFileImageOutline from "~icons/mdi/file-image-outline";
 
 const props = defineProps({
     files: {
@@ -17,80 +17,84 @@ const props = defineProps({
         type: Number,
         default: 10 * 1024 * 1024,
     },
-})
+});
 
-const emit = defineEmits(['update:files'])
+const emit = defineEmits(["update:files"]);
 
 const allowedTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/heic',
-    'application/pdf',
-]
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "application/pdf",
+];
 
 const formatSize = (size) => {
     if (size >= 1024 * 1024) {
-        return `${(size / (1024 * 1024)).toFixed(1)} МБ`
+        return `${(size / (1024 * 1024)).toFixed(1)} МБ`;
     }
     if (size >= 1024) {
-        return `${Math.round(size / 1024)} КБ`
+        return `${Math.round(size / 1024)} КБ`;
     }
-    return `${size} Б`
-}
+    return `${size} Б`;
+};
 
 const fileIcon = (file) => {
-    if (file.type === 'application/pdf') {
-        return MdiFilePdfBox
+    if (file.type === "application/pdf") {
+        return MdiFilePdfBox;
     }
-    return MdiFileImageOutline
-}
+    return MdiFileImageOutline;
+};
 
 const handleFileChange = (event) => {
-    const selectedFiles = Array.from(event.target.files || [])
-    if (!selectedFiles.length) return
+    const selectedFiles = Array.from(event.target.files || []);
+    if (!selectedFiles.length) return;
 
-    const currentFiles = [...props.files]
-    const validFiles = []
+    const currentFiles = [...props.files];
+    const validFiles = [];
 
     for (const file of selectedFiles) {
         if (!allowedTypes.includes(file.type)) {
-            alert('Недопустимый тип файла. Разрешены: JPEG, HEIC, PNG, PDF.')
-            continue
+            alert("Недопустимый тип файла. Разрешены: JPEG, HEIC, PNG, PDF.");
+            continue;
         }
 
         if (file.size > props.maxSize) {
-            alert('Файл слишком большой. Максимальный размер: 10 Мб.')
-            continue
+            alert("Файл слишком большой. Максимальный размер: 10 Мб.");
+            continue;
         }
 
         const duplicate = currentFiles.some(
-            (existing) => existing.name === file.name && existing.size === file.size
-        )
+            (existing) =>
+                existing.name === file.name && existing.size === file.size,
+        );
         if (duplicate) {
-            continue
+            continue;
         }
 
-        validFiles.push(file)
+        validFiles.push(file);
     }
 
     if (!validFiles.length) {
-        event.target.value = ''
-        return
+        event.target.value = "";
+        return;
     }
 
     if (currentFiles.length + validFiles.length > props.maxFiles) {
-        alert(`Максимум можно загрузить ${props.maxFiles} вложения.`)
-        event.target.value = ''
-        return
+        alert(`Максимум можно загрузить ${props.maxFiles} вложения.`);
+        event.target.value = "";
+        return;
     }
 
-    emit('update:files', [...currentFiles, ...validFiles])
-    event.target.value = ''
-}
+    emit("update:files", [...currentFiles, ...validFiles]);
+    event.target.value = "";
+};
 
 const removeFile = (index) => {
-    emit('update:files', props.files.filter((_, idx) => idx !== index))
-}
+    emit(
+        "update:files",
+        props.files.filter((_, idx) => idx !== index),
+    );
+};
 </script>
 
 <template>
@@ -114,13 +118,22 @@ const removeFile = (index) => {
                 <span>{{ props.files.length }} из {{ props.maxFiles }}</span>
             </div>
             <ul>
-                <li v-for="(file, index) in props.files" :key="file.name + file.size">
+                <li
+                    v-for="(file, index) in props.files"
+                    :key="file.name + file.size"
+                >
                     <component :is="fileIcon(file)" class="attachment-icon" />
                     <div class="attachment-meta">
                         <span class="attachment-name">{{ file.name }}</span>
-                        <span class="attachment-size">{{ formatSize(file.size) }}</span>
+                        <span class="attachment-size">{{
+                            formatSize(file.size)
+                        }}</span>
                     </div>
-                    <button type="button" class="remove-btn" @click="removeFile(index)">
+                    <button
+                        type="button"
+                        class="remove-btn"
+                        @click="removeFile(index)"
+                    >
                         <MdiCloseCircle />
                     </button>
                 </li>
@@ -145,7 +158,9 @@ const removeFile = (index) => {
     flex-direction: column;
     gap: 10px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
     max-width: 220px;
 }
 
@@ -163,7 +178,7 @@ input[type="file"] {
     align-items: center;
     gap: 10px;
     color: var(--color-main-inverted);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .clip {

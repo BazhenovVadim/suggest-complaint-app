@@ -1,7 +1,7 @@
 :root {
     --font-header: "Open Sans", sans-serif;
     --font-text: "Montserrat", sans-serif;
-    
+
     --color-main: #ffffff;
     --color-main-inverted: #000000;
     --color-accent: #55be7f;
@@ -35,7 +35,8 @@ body {
     min-height: 90svh;
 }
 
-h1, h2 {
+h1,
+h2 {
     margin: 0;
 }
 

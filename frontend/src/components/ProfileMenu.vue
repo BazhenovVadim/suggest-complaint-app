@@ -1,11 +1,11 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import IconMdiAccountCircle from '~icons/mdi/account-circle'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import IconMdiAccountCircle from "~icons/mdi/account-circle";
 
 const router = useRouter();
 const showDropdown = ref(false);
-const isAuthenticated = computed(() => !!localStorage.getItem('accessToken'));
+const isAuthenticated = computed(() => !!localStorage.getItem("accessToken"));
 const containerRef = ref(null);
 
 const toggleDropdown = () => {
@@ -13,26 +13,27 @@ const toggleDropdown = () => {
 };
 
 const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     showDropdown.value = false;
-    router.push('/login');
+    router.push("/login");
 };
 
 const goToStatuses = () => {
-    alert('Статусы заявок');
+    alert("Статусы заявок");
     showDropdown.value = false;
 };
 
 const goToLogin = () => {
-    router.push('/login');
+    router.push("/login");
     showDropdown.value = false;
 };
 
 onMounted(() => {
-  document.addEventListener("click", (e) => {
-    if (showDropdown.value && !containerRef.value.contains(e.target)) showDropdown.value = false;
-  });
+    document.addEventListener("click", (e) => {
+        if (showDropdown.value && !containerRef.value.contains(e.target))
+            showDropdown.value = false;
+    });
 });
 </script>
 
@@ -41,9 +42,13 @@ onMounted(() => {
         <IconMdiAccountCircle class="profile-icon" @click="toggleDropdown" />
         <transition name="dropdown">
             <div v-if="showDropdown" class="dropdown">
-                <a v-if="!isAuthenticated" href="#" @click.prevent="goToLogin">Войти</a>
+                <a v-if="!isAuthenticated" href="#" @click.prevent="goToLogin"
+                    >Войти</a
+                >
                 <template v-else>
-                    <a href="#" @click.prevent="goToStatuses">Статусы заявок</a>
+                    <a href="/profile" @click.prevent="goToStatuses"
+                        >Статусы заявок</a
+                    >
                     <a href="#" @click.prevent="logout">Выйти</a>
                 </template>
             </div>
@@ -77,7 +82,7 @@ onMounted(() => {
     padding: 10px;
     border: 1px solid var(--color-border);
     border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 10;
     min-width: 150px;
     margin-top: 5px;
@@ -99,7 +104,9 @@ onMounted(() => {
 
 .dropdown-enter-active,
 .dropdown-leave-active {
-      transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 
 .dropdown-enter-from,
@@ -117,7 +124,7 @@ onMounted(() => {
         min-width: 200px;
     }
     .dropdown a {
-    font-size: 22px;
+        font-size: 22px;
     }
 }
 </style>

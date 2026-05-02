@@ -1,31 +1,34 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
 
 import Input from "../components/Input.vue";
 import Button from "../components/Button.vue";
 
-const email = ref('');
-const password = ref('');
-const error = ref('');
+const email = ref("");
+const password = ref("");
+const error = ref("");
 const loading = ref(false);
 const router = useRouter();
 
 const handleSubmit = async () => {
     loading.value = true;
-    error.value = '';
-    
+    error.value = "";
+
     try {
-        const response = await axios.post('http://localhost:8080/api/auth/login', {
-            email: email.value,
-            password: password.value,
-        });
-        localStorage.setItem('accessToken', response.data.accessToken);
-        localStorage.setItem('refreshToken', response.data.refreshToken);
-        router.push('/');
+        const response = await axios.post(
+            "http://localhost:8080/api/auth/login",
+            {
+                email: email.value,
+                password: password.value,
+            },
+        );
+        localStorage.setItem("accessToken", response.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+        router.push("/");
     } catch (err) {
-        error.value = `Ошибка: ${err.response?.data?.message || 'Неизвестная ошибка'}`;
+        error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
         loading.value = false;
     }
@@ -63,13 +66,10 @@ const handleSubmit = async () => {
 
         <div class="toggle-login">
             Нет аккаунта?
-            <router-link to="/register">
-                Зарегистрироваться
-            </router-link>
+            <router-link to="/register"> Зарегистрироваться </router-link>
         </div>
     </main>
 </template>
-
 
 <style scoped>
 .main {
@@ -80,7 +80,7 @@ const handleSubmit = async () => {
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
-    box-shadow: 0px 0px 5px rgba(0,0,0,0.1); 
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
     gap: 20px;
 }
 
@@ -106,7 +106,8 @@ const handleSubmit = async () => {
     margin: 0;
 }
 
-.email, .password {
+.email,
+.password {
     width: 100%;
 }
 

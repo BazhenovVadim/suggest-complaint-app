@@ -1,9 +1,9 @@
 <script setup>
-import MdiFlag from '~icons/mdi/flag-variant'
-import MdiLightbulb from '~icons/mdi/lightbulb-on-outline'
-import MdiBook from '~icons/mdi/book-open-blank-variant-outline'
-import MdiDotsHorizontal from '~icons/mdi/dots-horizontal'
-import MdiCircleMedium  from "~icons/mdi/circle-medium";
+import MdiFlag from "~icons/mdi/flag-variant";
+import MdiLightbulb from "~icons/mdi/lightbulb-on-outline";
+import MdiBook from "~icons/mdi/book-open-blank-variant-outline";
+import MdiDotsHorizontal from "~icons/mdi/dots-horizontal";
+import MdiCircleMedium from "~icons/mdi/circle-medium";
 
 const Icons = {
     "mdi-flag": MdiFlag,
@@ -11,7 +11,7 @@ const Icons = {
     "mdi-book": MdiBook,
     "mdi-dots-horizontal": MdiDotsHorizontal,
     "mdi-circle-medium": MdiCircleMedium,
-}
+};
 
 const props = defineProps({
     label: String,

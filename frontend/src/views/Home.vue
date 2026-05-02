@@ -12,7 +12,7 @@ import Checkbox from "../components/Checkbox.vue";
 import Toggle from "../components/Toggle.vue";
 import ProfileMenu from "../components/ProfileMenu.vue";
 
-const isAuthenticated = ref(!!localStorage.getItem('accessToken')); 
+const isAuthenticated = ref(!!localStorage.getItem("accessToken"));
 
 const typeOptions = [
     { value: "COMPLAINT", label: "Жалоба", icon: "mdi-flag" },
@@ -24,7 +24,11 @@ const typeOptions = [
 const locationOptions = [
     { id: "STUDENT_CAMPUS", label: "Студгородок", icon: "mdi-school" },
     { id: "DORMITORY", label: "Общежитие", icon: "mdi-home" },
-    { id: "ACADEMIC_BUILDING", label: "Учебный корпус", icon: "mdi-office-building" },
+    {
+        id: "ACADEMIC_BUILDING",
+        label: "Учебный корпус",
+        icon: "mdi-office-building",
+    },
     { id: "LIBRARY", label: "Библиотека", icon: "mdi-library-books" },
     { id: "CANTEEN", label: "Столовая", icon: "mdi-food-fork-drink" },
     { id: "SPORTS_COMPLEX", label: "Спорткомплекс", icon: "mdi-dumbbell" },
@@ -68,37 +72,37 @@ const consent = ref(false);
 
 const handleSubmit = async () => {
     if (!isAuthenticated.value) {
-        alert('Необходимо войти в систему для отправки обращения');
+        alert("Необходимо войти в систему для отправки обращения");
         return;
     }
 
     if (!selectedLocation.value) {
-        alert('Выберите место обращения');
+        alert("Выберите место обращения");
         return;
     }
 
     if (!selectedCategory.value) {
-        alert('Выберите категорию проблемы');
+        alert("Выберите категорию проблемы");
         return;
     }
 
     if (!message.value.trim()) {
-        alert('Опишите вашу проблему');
+        alert("Опишите вашу проблему");
         return;
     }
 
     if (!consent.value) {
-        alert('Необходимо согласие на обработку персональных данных');
+        alert("Необходимо согласие на обработку персональных данных");
         return;
     }
 
     if (!anonymous.value && (!name.value.trim() || !email.value.trim())) {
-        alert('Заполните контактные данные или включите анонимную отправку');
+        alert("Заполните контактные данные или включите анонимную отправку");
         return;
     }
 
     try {
-        const accessToken = localStorage.getItem('accessToken');
+        const accessToken = localStorage.getItem("accessToken");
         const appealData = {
             type: selectedType.value,
             campusLocation: selectedLocation.value,
@@ -112,16 +116,16 @@ const handleSubmit = async () => {
         };
 
         const response = await axios.post(
-            'http://localhost:8080/api/appeals',
+            "http://localhost:8080/api/appeals",
             appealData,
             {
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
                 },
-            }
+            },
         );
-        
+
         // Form cleanup
         selectedType.value = "COMPLAINT";
         selectedLocation.value = null;
@@ -135,9 +139,12 @@ const handleSubmit = async () => {
         anonymous.value = false;
         consent.value = false;
     } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Ошибка при отправке обращения';
+        const errorMessage =
+            error.response?.data?.message ||
+            error.message ||
+            "Ошибка при отправке обращения";
         alert(`Ошибка: ${errorMessage}`);
-        console.error('Ошибка при отправке обращения:', error);
+        console.error("Ошибка при отправке обращения:", error);
     }
 };
 </script>
@@ -151,8 +158,8 @@ const handleSubmit = async () => {
         <div class="greet">
             <h1>Напишите о своей проблеме</h1>
             <p>
-                Расскажите о волнующей вас проблеме, и мы постараемся помочь в ее
-                решении
+                Расскажите о волнующей вас проблеме, и мы постараемся помочь в
+                ее решении
             </p>
         </div>
         <div class="problem">
@@ -191,13 +198,16 @@ const handleSubmit = async () => {
                 <TextBox v-model="message" />
                 <div class="file-upload">
                     <FileUpload v-model:files="attachments" :max-files="4" />
-                    <p class="restrictions">Форматы: JPG, PNG, HEIC, PDF. До 4 файлов, максимум 10 МБ каждый.</p>
+                    <p class="restrictions">
+                        Форматы: JPG, PNG, HEIC, PDF. До 4 файлов, максимум 10
+                        МБ каждый.
+                    </p>
                 </div>
             </div>
         </div>
         <div class="contacts">
             <div class="contacts-header">
-                <h2 style="margin: 0;">
+                <h2 style="margin: 0">
                     Контакты для ответа
                     <span style="color: #999999">(необязательно)</span>
                 </h2>
@@ -244,7 +254,7 @@ const handleSubmit = async () => {
     align-items: center;
     box-sizing: border-box;
     width: 100%;
-    box-shadow: 0px 0px 5px rgba(0,0,0,0.1); 
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
     gap: 20px;
 }
 

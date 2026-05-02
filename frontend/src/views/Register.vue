@@ -1,45 +1,48 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import axios from "axios";
 
 import Input from "../components/Input.vue";
 import Button from "../components/Button.vue";
 import Checkbox from "../components/Checkbox.vue";
 
-const email = ref('');
-const password = ref('');
-const confirmPassword = ref('');
+const email = ref("");
+const password = ref("");
+const confirmPassword = ref("");
 const consent = ref(false);
-const error = ref('');
+const error = ref("");
 const loading = ref(false);
 const router = useRouter();
 
 const handleSubmit = async () => {
     loading.value = true;
-    error.value = '';
-    
+    error.value = "";
+
     if (password.value !== confirmPassword.value) {
-        error.value = 'Пароли не совпадают';
+        error.value = "Пароли не совпадают";
         loading.value = false;
         return;
     }
-    
+
     if (!consent.value) {
-        error.value = 'Необходимо согласие на обработку персональных данных';
+        error.value = "Необходимо согласие на обработку персональных данных";
         loading.value = false;
         return;
     }
-    
+
     try {
-        const response = await axios.post('http://localhost:8080/api/auth/register', {
-            email: email.value,
-            password: password.value,
-        });
-        alert('Регистрация успешна! Теперь войдите.');
-        router.push('/login');
+        const response = await axios.post(
+            "http://localhost:8080/api/auth/register",
+            {
+                email: email.value,
+                password: password.value,
+            },
+        );
+        alert("Регистрация успешна! Теперь войдите.");
+        router.push("/login");
     } catch (err) {
-        error.value = `Ошибка: ${err.response?.data?.message || 'Неизвестная ошибка'}`;
+        error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
         loading.value = false;
     }
@@ -85,15 +88,15 @@ const handleSubmit = async () => {
                 v-model="consent"
                 label="Я согласен на обработку персональных данных"
             />
-            <Button type="submit" :disabled="loading">Зарегистрироваться</Button>
+            <Button type="submit" :disabled="loading"
+                >Зарегистрироваться</Button
+            >
         </form>
         <p v-if="error">{{ error }}</p>
 
         <div class="toggle-login">
             Уже есть аккаунт?
-            <router-link to="/login">
-                Войти
-            </router-link>
+            <router-link to="/login"> Войти </router-link>
         </div>
     </main>
 </template>
@@ -107,7 +110,7 @@ const handleSubmit = async () => {
     flex-direction: column;
     align-items: center;
     box-sizing: border-box;
-    box-shadow: 0px 0px 5px rgba(0,0,0,0.1); 
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
     gap: 20px;
 }
 
@@ -133,7 +136,9 @@ const handleSubmit = async () => {
     margin: 0;
 }
 
-.email, .password, .confirm-password {
+.email,
+.password,
+.confirm-password {
     width: 100%;
 }
 
