@@ -26,22 +26,22 @@ public class UserService {
 
     public UserResponseDto existsByVkUserId(String vkUserId) {
         return userMapper.toResponseDto(userRepository.findByVkUserId(vkUserId).orElseThrow(() ->
-                new UsernameNotFoundException("user not found")));
+                new UsernameNotFoundException("Пользователь не найден")));
     }
 
     public UserResponseDto findUserId(UUID Id){
         return userMapper.toResponseDto(userRepository.findById(Id).orElseThrow(() ->
-                new UsernameNotFoundException("user not found")));
+                new UsernameNotFoundException("Пользователь не найден")));
     }
 
     public UserEntity getUserById(UUID Id){
         return userRepository.findById(Id).orElseThrow(() ->
-                new UsernameNotFoundException("user not found"));
+                new UsernameNotFoundException("Пользователь не найден"));
     }
 
     public UserResponseDto existsByTelegramUserId(String telegramUserId) {
         return userMapper.toResponseDto(userRepository.findByTelegramUserId(telegramUserId).orElseThrow(() ->
-                new UsernameNotFoundException("user not found")));
+                new UsernameNotFoundException("Пользователь не найден")));
     }
 
     public String buildRegistrationLink(String vkUserId, String tgUserId) {

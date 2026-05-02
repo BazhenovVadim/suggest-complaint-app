@@ -7,5 +7,5 @@
 
     <include file="db/changelog/001-create-users-table.xml"/>
     <include file="db/changelog/002-create-appeals-table.xml"/>
-
+    <include file="db/changelog/003-add-user-fields.xml"/>
 </databaseChangeLog>
