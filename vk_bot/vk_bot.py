@@ -89,60 +89,84 @@ logger.info(
 class AppealType(str, Enum):
     COMPLAINT = "Жалоба"
     SUGGESTION = "Предложение"
+    QUESTION = "Вопрос"
+    REQUEST = "Запрос"
 
 
 class LocationType(str, Enum):
-    CAMPUS = "Студгородок"
+    STUDENT_CAMPUS = "Студгородок"
     DORMITORY = "Общежитие"
-    EDUCATIONAL_CORPUS = "Учебный корпус"
-    NOT_APPLICABLE = "Не применимо"
+    ACADEMIC_BUILDING = "Учебный корпус"
+    LIBRARY = "Библиотека"
+    CANTEEN = "Столовая"
+    SPORTS_COMPLEX = "Спорткомплекс"
+    MEDICAL_CENTER = "Медпункт"
 
 
 LOCATION_TYPE_TO_BACKEND = {
-    LocationType.CAMPUS: "STUDENT_CAMPUS",
+    LocationType.STUDENT_CAMPUS: "STUDENT_CAMPUS",
     LocationType.DORMITORY: "DORMITORY",
-    LocationType.EDUCATIONAL_CORPUS: "ACADEMIC_BUILDING",
-    LocationType.NOT_APPLICABLE: "STUDENT_CAMPUS",
+    LocationType.ACADEMIC_BUILDING: "ACADEMIC_BUILDING",
+    LocationType.LIBRARY: "LIBRARY",
+    LocationType.CANTEEN: "CANTEEN",
+    LocationType.SPORTS_COMPLEX: "SPORTS_COMPLEX",
+    LocationType.MEDICAL_CENTER: "MEDICAL_CENTER",
 }
 
 
 class ProblemCategory(str, Enum):
-    RESETTLEMENT = "Расселение"
+    ACCOMMODATION = "Расселение"
     BATHROOM = "Санузел"
     ELECTRICITY = "Электрика"
+    HEATING = "Отопление"
+    CLEANLINESS = "Чистота"
+    NOISE = "Шум"
     PLUMBING = "Сантехника"
+    FURNITURE = "Мебель"
+    INTERNET = "Интернет"
     OTHER = "Другое"
-    NOT_APPLICABLE = "Не применимо"
 
 
 PROBLEM_CATEGORY_TO_BACKEND = {
-    ProblemCategory.RESETTLEMENT: "ACCOMMODATION",
+    ProblemCategory.ACCOMMODATION: "ACCOMMODATION",
     ProblemCategory.BATHROOM: "BATHROOM",
     ProblemCategory.ELECTRICITY: "ELECTRICITY",
+    ProblemCategory.HEATING: "HEATING",
+    ProblemCategory.CLEANLINESS: "CLEANLINESS",
+    ProblemCategory.NOISE: "NOISE",
     ProblemCategory.PLUMBING: "PLUMBING",
+    ProblemCategory.FURNITURE: "FURNITURE",
+    ProblemCategory.INTERNET: "INTERNET",
     ProblemCategory.OTHER: "OTHER",
-    ProblemCategory.NOT_APPLICABLE: "OTHER",
 }
 
 
 class Timeframe(str, Enum):
-    ONE_DAY = "В течение дня"
-    UP_TO_3_DAYS = "До 3 дней"
-    ONE_WEEK = "В течение недели"
-    NOT_URGENT = "Не срочно"
+    ONE_DAY = "1 день"
+    TWO_DAYS = "2 дня"
+    THREE_DAYS = "3 дня"
+    FIVE_DAYS = "5 дней"
+    ONE_WEEK = "1 неделя"
+    TWO_WEEKS = "2 недели"
+    ONE_MONTH = "1 месяц"
 
 
 TIMEFRAME_TO_BACKEND = {
     Timeframe.ONE_DAY: "ONE_DAY",
-    Timeframe.UP_TO_3_DAYS: "THREE_DAYS",
+    Timeframe.TWO_DAYS: "TWO_DAYS",
+    Timeframe.THREE_DAYS: "THREE_DAYS",
+    Timeframe.FIVE_DAYS: "FIVE_DAYS",
     Timeframe.ONE_WEEK: "ONE_WEEK",
-    Timeframe.NOT_URGENT: "TWO_WEEKS",
+    Timeframe.TWO_WEEKS: "TWO_WEEKS",
+    Timeframe.ONE_MONTH: "ONE_MONTH",
 }
 
 
 APPEAL_TYPE_TO_BACKEND = {
     AppealType.COMPLAINT: "COMPLAINT",
     AppealType.SUGGESTION: "SUGGESTION",
+    AppealType.QUESTION: "QUESTION",
+    AppealType.REQUEST: "REQUEST",
 }
 
 
@@ -150,6 +174,7 @@ class AppealStatus(str, Enum):
     NEW = "NEW"
     IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
+    REJECTED = "REJECTED"
 
 
 @dataclass
@@ -159,8 +184,8 @@ class Appeal:
     personalDataConsent: bool
     vkUserId: int
 
-    campusLocation: LocationType = LocationType.NOT_APPLICABLE
-    problemCategory: ProblemCategory = ProblemCategory.NOT_APPLICABLE
+    campusLocation: Optional[LocationType] = None
+    problemCategory: Optional[ProblemCategory] = None
     timeframe: Optional[Timeframe] = None
 
     id: Optional[str] = None
@@ -203,7 +228,7 @@ class Appeal:
         log_event(
             logging.DEBUG,
             "appeal_serialized",
-            vk_user_id=self.vk_user_id,
+            vk_user_id=self.vkUserId,
             appeal_type=self.type,
             payload=safe_payload(result),
         )
@@ -326,30 +351,78 @@ class AppealState(BaseStateGroup):
 
 LOCATION_CATEGORIES: Dict[LocationType, List[ProblemCategory]] = {
     LocationType.DORMITORY: [
-        ProblemCategory.RESETTLEMENT,
+        ProblemCategory.ACCOMMODATION,
         ProblemCategory.BATHROOM,
+        ProblemCategory.ELECTRICITY,
+        ProblemCategory.HEATING,
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
+        ProblemCategory.PLUMBING,
+        ProblemCategory.FURNITURE,
+        ProblemCategory.INTERNET,
+        ProblemCategory.OTHER,
+    ],
+    LocationType.ACADEMIC_BUILDING: [
+        ProblemCategory.BATHROOM,
+        ProblemCategory.ELECTRICITY,
+        ProblemCategory.HEATING,
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
+        ProblemCategory.PLUMBING,
+        ProblemCategory.FURNITURE,
+        ProblemCategory.INTERNET,
+        ProblemCategory.OTHER,
+    ],
+    LocationType.STUDENT_CAMPUS: [
+        ProblemCategory.ELECTRICITY,
+        ProblemCategory.HEATING,
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
+        ProblemCategory.PLUMBING,
+        ProblemCategory.FURNITURE,
+        ProblemCategory.INTERNET,
+        ProblemCategory.OTHER,
+    ],
+    LocationType.LIBRARY: [
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
+        ProblemCategory.ELECTRICITY,
+        ProblemCategory.FURNITURE,
+        ProblemCategory.INTERNET,
+        ProblemCategory.OTHER,
+    ],
+    LocationType.CANTEEN: [
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
         ProblemCategory.ELECTRICITY,
         ProblemCategory.PLUMBING,
         ProblemCategory.OTHER,
     ],
-    LocationType.EDUCATIONAL_CORPUS: [
-        ProblemCategory.BATHROOM,
+    LocationType.SPORTS_COMPLEX: [
+        ProblemCategory.CLEANLINESS,
+        ProblemCategory.NOISE,
         ProblemCategory.ELECTRICITY,
         ProblemCategory.PLUMBING,
+        ProblemCategory.FURNITURE,
         ProblemCategory.OTHER,
     ],
-    LocationType.CAMPUS: [
+    LocationType.MEDICAL_CENTER: [
+        ProblemCategory.CLEANLINESS,
         ProblemCategory.ELECTRICITY,
         ProblemCategory.PLUMBING,
+        ProblemCategory.FURNITURE,
         ProblemCategory.OTHER,
     ],
 }
 
 VALID_TIMEFRAMES = [
     Timeframe.ONE_DAY.value,
-    Timeframe.UP_TO_3_DAYS.value,
+    Timeframe.TWO_DAYS.value,
+    Timeframe.THREE_DAYS.value,
+    Timeframe.FIVE_DAYS.value,
     Timeframe.ONE_WEEK.value,
-    Timeframe.NOT_URGENT.value,
+    Timeframe.TWO_WEEKS.value,
+    Timeframe.ONE_MONTH.value,
 ]
 
 SENSITIVE_KEYS = {
@@ -395,13 +468,24 @@ BUTTON_TEXTS = {
     CANCEL_BUTTON,
     AppealType.COMPLAINT.value,
     AppealType.SUGGESTION.value,
-    LocationType.CAMPUS.value,
+    AppealType.QUESTION.value,
+    AppealType.REQUEST.value,
+    LocationType.STUDENT_CAMPUS.value,
     LocationType.DORMITORY.value,
-    LocationType.EDUCATIONAL_CORPUS.value,
-    ProblemCategory.RESETTLEMENT.value,
+    LocationType.ACADEMIC_BUILDING.value,
+    LocationType.LIBRARY.value,
+    LocationType.CANTEEN.value,
+    LocationType.SPORTS_COMPLEX.value,
+    LocationType.MEDICAL_CENTER.value,
+    ProblemCategory.ACCOMMODATION.value,
     ProblemCategory.BATHROOM.value,
     ProblemCategory.ELECTRICITY.value,
+    ProblemCategory.HEATING.value,
+    ProblemCategory.CLEANLINESS.value,
+    ProblemCategory.NOISE.value,
     ProblemCategory.PLUMBING.value,
+    ProblemCategory.FURNITURE.value,
+    ProblemCategory.INTERNET.value,
     ProblemCategory.OTHER.value,
     *VALID_TIMEFRAMES,
 }
@@ -1348,13 +1432,13 @@ async def build_appeal_from_payload(
     campusLocation = enum_from_payload(
         LocationType,
         payload.get("campusLocation"),
-        LocationType.NOT_APPLICABLE,
+        None,
     )
 
     problemCategory = enum_from_payload(
         ProblemCategory,
         payload.get("problemCategory"),
-        ProblemCategory.NOT_APPLICABLE,
+        None,
     )
 
     timeframe = enum_from_payload(
@@ -1362,6 +1446,13 @@ async def build_appeal_from_payload(
         payload.get("timeframe"),
         None,
     )
+
+    if appeal_type != AppealType.COMPLAINT:
+        if campusLocation is None:
+            campusLocation = LocationType.STUDENT_CAMPUS
+
+        if problemCategory is None:
+            problemCategory = ProblemCategory.OTHER
 
     user_fields = get_user_contact_fields(registration.data)
 
@@ -1423,6 +1514,9 @@ def get_type_kb():
         .add(Text(AppealType.COMPLAINT.value), color=KeyboardButtonColor.NEGATIVE)
         .add(Text(AppealType.SUGGESTION.value), color=KeyboardButtonColor.POSITIVE)
         .row()
+        .add(Text(AppealType.QUESTION.value), color=KeyboardButtonColor.PRIMARY)
+        .add(Text(AppealType.REQUEST.value), color=KeyboardButtonColor.SECONDARY)
+        .row()
         .add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.NEGATIVE)
         .get_json()
     )
@@ -1455,13 +1549,17 @@ def get_location_kb():
     kb = Keyboard(one_time=True)
 
     locations = [
-        LocationType.CAMPUS,
+        LocationType.STUDENT_CAMPUS,
         LocationType.DORMITORY,
-        LocationType.EDUCATIONAL_CORPUS,
+        LocationType.ACADEMIC_BUILDING,
+        LocationType.LIBRARY,
+        LocationType.CANTEEN,
+        LocationType.SPORTS_COMPLEX,
+        LocationType.MEDICAL_CENTER,
     ]
 
     for index, location in enumerate(locations):
-        if index > 0:
+        if index > 0 and index % 2 == 0:
             kb.row()
 
         kb.add(Text(location.value), color=KeyboardButtonColor.PRIMARY)
@@ -1494,14 +1592,23 @@ def get_category_kb(location: LocationType):
 def get_timeframe_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="timeframe")
 
-    kb = (
-        Keyboard(one_time=True)
-        .add(Text("В течение дня"), color=KeyboardButtonColor.PRIMARY)
-        .add(Text("До 3 дней"), color=KeyboardButtonColor.PRIMARY)
-        .row()
-        .add(Text("В течение недели"), color=KeyboardButtonColor.SECONDARY)
-        .add(Text("Не срочно"), color=KeyboardButtonColor.SECONDARY)
-    )
+    kb = Keyboard(one_time=True)
+
+    timeframes = [
+        Timeframe.ONE_DAY,
+        Timeframe.TWO_DAYS,
+        Timeframe.THREE_DAYS,
+        Timeframe.FIVE_DAYS,
+        Timeframe.ONE_WEEK,
+        Timeframe.TWO_WEEKS,
+        Timeframe.ONE_MONTH,
+    ]
+
+    for index, timeframe in enumerate(timeframes):
+        if index > 0 and index % 2 == 0:
+            kb.row()
+
+        kb.add(Text(timeframe.value), color=KeyboardButtonColor.PRIMARY if index < 3 else KeyboardButtonColor.SECONDARY)
 
     return add_navigation(kb).get_json()
 
@@ -1954,7 +2061,7 @@ async def back_action(message: Message):
         location = enum_from_payload(
             LocationType,
             payload.get("campusLocation"),
-            LocationType.NOT_APPLICABLE,
+            None,
         )
 
         await set_state(
@@ -1989,7 +2096,7 @@ async def back_action(message: Message):
             await set_state(
                 message,
                 AppealState.WAITING_FOR_TYPE,
-                reason="back_from_suggestion_description_to_type",
+                reason="back_from_description_to_type",
                 **payload,
             )
             await send_answer(
@@ -1998,7 +2105,6 @@ async def back_action(message: Message):
                 keyboard=get_type_kb(),
                 event="back_to_type",
             )
-
         return
 
     log_event(
@@ -2090,8 +2196,9 @@ async def type_handler(message: Message):
     log_handler_entry("type_handler", message)
 
     text = (message.text or "").strip()
+    normalized_text = text.lower()
 
-    if text == CANCEL_BUTTON:
+    if normalized_text == CANCEL_BUTTON.lower():
         log_event(
             logging.INFO,
             "type_handler_cancel",
@@ -2108,7 +2215,7 @@ async def type_handler(message: Message):
         )
         return
 
-    if text == BACK_BUTTON:
+    if normalized_text == BACK_BUTTON.lower():
         log_event(
             logging.INFO,
             "type_handler_back_on_first_step",
@@ -2124,7 +2231,7 @@ async def type_handler(message: Message):
         )
         return
 
-    if text == CHECK_REGISTRATION_BUTTON:
+    if normalized_text == CHECK_REGISTRATION_BUTTON.lower():
         log_event(
             logging.INFO,
             "type_handler_registration_check",
@@ -2146,7 +2253,7 @@ async def type_handler(message: Message):
         await send_registration_intro(message)
         return
 
-    if text == AppealType.COMPLAINT.value:
+    if normalized_text == AppealType.COMPLAINT.value.lower():
         log_event(
             logging.INFO,
             "type_handler_complaint_selected",
@@ -2168,7 +2275,7 @@ async def type_handler(message: Message):
         )
         return
 
-    if text == AppealType.SUGGESTION.value:
+    if normalized_text == AppealType.SUGGESTION.value.lower():
         log_event(
             logging.INFO,
             "type_handler_suggestion_selected",
@@ -2187,6 +2294,50 @@ async def type_handler(message: Message):
             "Опишите суть вашего предложения:",
             keyboard=get_navigation_kb(),
             event="suggestion_description_requested",
+        )
+        return
+
+    if normalized_text == AppealType.QUESTION.value.lower():
+        log_event(
+            logging.INFO,
+            "type_handler_question_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_DESCRIPTION,
+            reason="question_selected",
+            type=AppealType.QUESTION.value,
+        )
+        await send_answer(
+            message,
+            "Опишите суть вашего вопроса:",
+            keyboard=get_navigation_kb(),
+            event="question_description_requested",
+        )
+        return
+
+    if normalized_text == AppealType.REQUEST.value.lower():
+        log_event(
+            logging.INFO,
+            "type_handler_request_selected",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_DESCRIPTION,
+            reason="request_selected",
+            type=AppealType.REQUEST.value,
+        )
+        await send_answer(
+            message,
+            "Опишите суть вашего запроса:",
+            keyboard=get_navigation_kb(),
+            event="request_description_requested",
         )
         return
 
@@ -2270,7 +2421,13 @@ async def category_handler(message: Message):
     location = enum_from_payload(
         LocationType,
         payload.get("campusLocation"),
-        LocationType.NOT_APPLICABLE,
+        None,
+    )
+
+    appeal_type = enum_from_payload(
+        AppealType,
+        payload.get("type"),
+        None,
     )
 
     allowed_categories = get_categories_for_location(location)
@@ -2326,18 +2483,40 @@ async def category_handler(message: Message):
 
     payload["problemCategory"] = category.value
 
+    if appeal_type == AppealType.COMPLAINT:
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_TIMEFRAME,
+            reason="category_selected",
+            **payload,
+        )
+
+        await send_answer(
+            message,
+            "Укажите ориентировочные сроки:",
+            keyboard=get_timeframe_kb(),
+            event="timeframe_requested",
+        )
+        return
+
     await set_state(
         message,
-        AppealState.WAITING_FOR_TIMEFRAME,
+        AppealState.WAITING_FOR_DESCRIPTION,
         reason="category_selected",
         **payload,
     )
 
+    description_prompt = {
+        AppealType.SUGGESTION: "Опишите суть вашего предложения:",
+        AppealType.QUESTION: "Опишите суть вашего вопроса:",
+        AppealType.REQUEST: "Опишите суть вашего запроса:",
+    }.get(appeal_type, "Опишите суть обращения:")
+
     await send_answer(
         message,
-        "Укажите ориентировочные сроки:",
-        keyboard=get_timeframe_kb(),
-        event="timeframe_requested",
+        description_prompt,
+        keyboard=get_navigation_kb(),
+        event="description_requested",
     )
 
 
@@ -2521,12 +2700,26 @@ async def description_handler(message: Message):
             keyboard=get_start_kb(),
             event="complaint_saved_success",
         )
-    else:
+    elif appeal.type == AppealType.SUGGESTION:
         await send_answer(
             message,
             "✅ Ваше предложение успешно зарегистрировано!",
             keyboard=get_start_kb(),
             event="suggestion_saved_success",
+        )
+    elif appeal.type == AppealType.QUESTION:
+        await send_answer(
+            message,
+            "✅ Ваш вопрос успешно зарегистрирован!",
+            keyboard=get_start_kb(),
+            event="question_saved_success",
+        )
+    elif appeal.type == AppealType.REQUEST:
+        await send_answer(
+            message,
+            "✅ Ваш запрос успешно зарегистрирован!",
+            keyboard=get_start_kb(),
+            event="request_saved_success",
         )
 
 
