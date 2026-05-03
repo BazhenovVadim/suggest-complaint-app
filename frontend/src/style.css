@@ -33,6 +33,7 @@ body {
     box-sizing: border-box;
     align-items: center;
     min-height: 90svh;
+    margin: 0;
 }
 
 h1,
@@ -42,7 +43,6 @@ h2 {
 
 @media (min-width: 768px) {
     body {
-        font-size: 25px;
-        margin-top: 20px;
+        font-size: 22px;
     }
 }

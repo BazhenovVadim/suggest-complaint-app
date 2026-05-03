@@ -51,58 +51,66 @@ const handleSubmit = async () => {
 
 <template>
     <main class="main">
-        <img src="../assets/prof.jpg" class="logo" />
-        <h1>Регистрация</h1>
-        <form class="form" @submit.prevent="handleSubmit">
-            <div class="field-group">
-                <h2>Email</h2>
-                <Input
-                    class="email"
-                    v-model="email"
-                    type="email"
-                    placeholder="Email"
-                    required
+        <div class="content">
+            <img src="../assets/prof.jpg" class="logo" />
+            <h1>Регистрация</h1>
+            <form class="form" @submit.prevent="handleSubmit">
+                <div class="field-group">
+                    <h2>Email</h2>
+                    <Input
+                        class="email"
+                        v-model="email"
+                        type="email"
+                        placeholder="Email"
+                        required
+                    />
+                </div>
+                <div class="field-group">
+                    <h2>Пароль</h2>
+                    <Input
+                        class="password"
+                        v-model="password"
+                        type="password"
+                        placeholder="Пароль"
+                        required
+                    />
+                </div>
+                <div class="field-group">
+                    <h2>Подтверждение пароля</h2>
+                    <Input
+                        class="confirm-password"
+                        v-model="confirmPassword"
+                        type="password"
+                        placeholder="Подтвердите пароль"
+                        required
+                    />
+                </div>
+                <Checkbox
+                    v-model="consent"
+                    label="Я согласен на обработку персональных данных"
                 />
-            </div>
-            <div class="field-group">
-                <h2>Пароль</h2>
-                <Input
-                    class="password"
-                    v-model="password"
-                    type="password"
-                    placeholder="Пароль"
-                    required
-                />
-            </div>
-            <div class="field-group">
-                <h2>Подтверждение пароля</h2>
-                <Input
-                    class="confirm-password"
-                    v-model="confirmPassword"
-                    type="password"
-                    placeholder="Подтвердите пароль"
-                    required
-                />
-            </div>
-            <Checkbox
-                v-model="consent"
-                label="Я согласен на обработку персональных данных"
-            />
-            <Button type="submit" :disabled="loading"
-                >Зарегистрироваться</Button
-            >
-        </form>
-        <p v-if="error">{{ error }}</p>
+                <Button type="submit" :disabled="loading"
+                    >Зарегистрироваться</Button
+                >
+            </form>
+            <p v-if="error">{{ error }}</p>
 
-        <div class="toggle-login">
-            Уже есть аккаунт?
-            <router-link to="/login"> Войти </router-link>
+            <div class="toggle-login">
+                Уже есть аккаунт?
+                <router-link to="/login"> Войти </router-link>
+            </div>
         </div>
     </main>
 </template>
 
 <style scoped>
 .main {
+    display: flex;
+    justify-content: center;
+    padding: 15px;
+}
+
+.content {
     border: 1px solid var(--color-border);
     border-radius: 36px;
     padding: 20px;
@@ -170,6 +178,9 @@ a:hover {
 
 @media (min-width: 768px) {
     .main {
+        padding: 30px;
+    }
+    .content {
         padding: 35px;
         min-width: 600px;
         width: 35vw;

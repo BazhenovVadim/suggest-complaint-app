@@ -151,101 +151,113 @@ const handleSubmit = async () => {
 
 <template>
     <main class="main">
-        <div class="header">
-            <img src="../assets/prof.jpg" class="logo" />
-            <ProfileMenu />
-        </div>
-        <div class="greet">
-            <h1>Напишите о своей проблеме</h1>
-            <p>
-                Расскажите о волнующей вас проблеме, и мы постараемся помочь в
-                ее решении
-            </p>
-        </div>
-        <div class="problem">
-            <div class="options-wrapper">
-                <h2>Тип обращения</h2>
-                <div class="options">
-                    <Option
-                        v-for="option in typeOptions"
-                        :key="option.value"
-                        :label="option.label"
-                        :icon="option.icon"
-                        :selected="option.value === selectedType"
-                        @select="selectedType = option.value"
-                    />
+        <div class="content">
+            <div class="header">
+                <img src="../assets/prof.jpg" class="logo" />
+                <ProfileMenu />
+            </div>
+            <div class="greet">
+                <h1>Напишите о своей проблеме</h1>
+                <p>
+                    Расскажите о волнующей вас проблеме, и мы постараемся помочь
+                    в ее решении
+                </p>
+            </div>
+            <div class="problem">
+                <div class="options-wrapper">
+                    <h2>Тип обращения</h2>
+                    <div class="options">
+                        <Option
+                            v-for="option in typeOptions"
+                            :key="option.value"
+                            :label="option.label"
+                            :icon="option.icon"
+                            :selected="option.value === selectedType"
+                            @select="selectedType = option.value"
+                        />
+                    </div>
+                    <div class="categories">
+                        <CategorySelect
+                            v-model="selectedLocation"
+                            :categories="locationOptions"
+                            label="Место обращения"
+                        />
+                        <CategorySelect
+                            v-model="selectedCategory"
+                            :categories="categoryOptions"
+                            label="Категория"
+                        />
+                        <CategorySelect
+                            v-model="selectedTimeframe"
+                            :categories="timeframeOptions"
+                            label="Сроки решения (опционально)"
+                        />
+                    </div>
                 </div>
-                <div class="categories">
-                    <CategorySelect
-                        v-model="selectedLocation"
-                        :categories="locationOptions"
-                        label="Место обращения"
-                    />
-                    <CategorySelect
-                        v-model="selectedCategory"
-                        :categories="categoryOptions"
-                        label="Категория"
-                    />
-                    <CategorySelect
-                        v-model="selectedTimeframe"
-                        :categories="timeframeOptions"
-                        label="Сроки решения (опционально)"
-                    />
+                <div class="problem-description">
+                    <h2>Описание проблемы</h2>
+                    <TextBox v-model="message" />
+                    <div class="file-upload">
+                        <FileUpload
+                            v-model:files="attachments"
+                            :max-files="4"
+                        />
+                        <p class="restrictions">
+                            Форматы: JPG, PNG, HEIC, PDF. До 4 файлов, максимум
+                            10 МБ каждый.
+                        </p>
+                    </div>
                 </div>
             </div>
-            <div class="problem-description">
-                <h2>Описание проблемы</h2>
-                <TextBox v-model="message" />
-                <div class="file-upload">
-                    <FileUpload v-model:files="attachments" :max-files="4" />
-                    <p class="restrictions">
-                        Форматы: JPG, PNG, HEIC, PDF. До 4 файлов, максимум 10
-                        МБ каждый.
-                    </p>
+            <div class="contacts">
+                <div class="contacts-header">
+                    <h2 style="margin: 0">
+                        Контакты для ответа
+                        <span style="color: #999999">(необязательно)</span>
+                    </h2>
+                    <Toggle v-model="anonymous" label="Отправить анонимно" />
                 </div>
-            </div>
-        </div>
-        <div class="contacts">
-            <div class="contacts-header">
-                <h2 style="margin: 0">
-                    Контакты для ответа
-                    <span style="color: #999999">(необязательно)</span>
-                </h2>
-                <Toggle v-model="anonymous" label="Отправить анонимно" />
-            </div>
 
-            <div class="inputs">
-                <Input
-                    class="name"
-                    v-model="name"
-                    placeholder="Ваше имя"
-                    :disabled="anonymous"
+                <div class="inputs">
+                    <Input
+                        class="name"
+                        v-model="name"
+                        placeholder="Ваше имя"
+                        :disabled="anonymous"
+                    />
+                    <Input
+                        v-model="phone"
+                        placeholder="Телефон"
+                        :disabled="anonymous"
+                    />
+                    <Input
+                        v-model="email"
+                        placeholder="E-mail"
+                        :disabled="anonymous"
+                    />
+                </div>
+            </div>
+            <div class="submit">
+                <Checkbox
+                    v-model="consent"
+                    label="Я согласен на обработку персональных данных"
                 />
-                <Input
-                    v-model="phone"
-                    placeholder="Телефон"
-                    :disabled="anonymous"
-                />
-                <Input
-                    v-model="email"
-                    placeholder="E-mail"
-                    :disabled="anonymous"
-                />
+                <Button @click="handleSubmit">Отправить обращение</Button>
             </div>
         </div>
-        <div class="submit">
-            <Checkbox
-                v-model="consent"
-                label="Я согласен на обработку персональных данных"
-            />
-            <Button @click="handleSubmit">Отправить обращение</Button>
-        </div>
+        <footer>Ну футер там и т.д.</footer>
     </main>
-    <footer>Ну футер там и т.д.</footer>
 </template>
 
 <style scoped>
 .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+}
+
+.content {
     border: 1px solid var(--color-border);
     border-radius: 36px;
     padding: 20px;
@@ -360,7 +372,11 @@ footer {
 
 @media (min-width: 768px) {
     .main {
+        padding: 30px;
+    }
+    .content {
         padding: 35px;
+        max-width: 900px;
     }
     .dropdown a {
         font-size: 20px;

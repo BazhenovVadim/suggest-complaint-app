@@ -5,3 +5,9 @@
         <router-view />
     </div>
 </template>
+
+<style scoped>
+#app {
+    width: 100dvw;
+}
+</style>

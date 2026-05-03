@@ -37,42 +37,50 @@ const handleSubmit = async () => {
 
 <template>
     <main class="main">
-        <img src="../assets/prof.jpg" class="logo" />
-        <h1>Вход в систему</h1>
-        <form class="form" @submit.prevent="handleSubmit">
-            <div class="field-group">
-                <h2>Email</h2>
-                <Input
-                    class="email"
-                    v-model="email"
-                    type="email"
-                    placeholder="Email"
-                    required
-                />
-            </div>
-            <div class="field-group">
-                <h2>Пароль</h2>
-                <Input
-                    class="password"
-                    v-model="password"
-                    type="password"
-                    placeholder="Пароль"
-                    required
-                />
-            </div>
-            <Button type="submit" :disabled="loading">Войти</Button>
-        </form>
-        <p v-if="error">{{ error }}</p>
+        <div class="content">
+            <img src="../assets/prof.jpg" class="logo" />
+            <h1>Вход в систему</h1>
+            <form class="form" @submit.prevent="handleSubmit">
+                <div class="field-group">
+                    <h2>Email</h2>
+                    <Input
+                        class="email"
+                        v-model="email"
+                        type="email"
+                        placeholder="Email"
+                        required
+                    />
+                </div>
+                <div class="field-group">
+                    <h2>Пароль</h2>
+                    <Input
+                        class="password"
+                        v-model="password"
+                        type="password"
+                        placeholder="Пароль"
+                        required
+                    />
+                </div>
+                <Button type="submit" :disabled="loading">Войти</Button>
+            </form>
+            <p v-if="error">{{ error }}</p>
 
-        <div class="toggle-login">
-            Нет аккаунта?
-            <router-link to="/register"> Зарегистрироваться </router-link>
+            <div class="toggle-login">
+                Нет аккаунта?
+                <router-link to="/register"> Зарегистрироваться </router-link>
+            </div>
         </div>
     </main>
 </template>
 
 <style scoped>
 .main {
+    display: flex;
+    justify-content: center;
+    padding: 15px;
+}
+
+.content {
     border: 1px solid var(--color-border);
     border-radius: 36px;
     padding: 20px;
@@ -139,6 +147,9 @@ a:hover {
 
 @media (min-width: 768px) {
     .main {
+        padding: 30px;
+    }
+    .content {
         padding: 35px;
         min-width: 600px;
         width: 35vw;
