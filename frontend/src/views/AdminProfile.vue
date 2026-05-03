@@ -4,9 +4,10 @@ import { ref, computed } from "vue";
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "../components/AppealItem.vue";
 
-const activeTab = ref("active");
+const activeTab = ref("unprocessed");
 const tabs = [
-    { id: "active", label: "Активные заявки" },
+    { id: "unprocessed", label: "Необработанные заявки" },
+    { id: "processing", label: "Обрабатываемые заявки" },
     { id: "completed", label: "Завершенные заявки" },
 ];
 
@@ -118,8 +119,8 @@ const completedAppeals = ref([
 
 const currentAppeals = computed(() => {
     let list = [];
-    if (activeTab.value === "active")
-        list = [...unprocessedAppeals.value, ...processingAppeals.value];
+    if (activeTab.value === "unprocessed") list = unprocessedAppeals.value;
+    else if (activeTab.value === "processing") list = processingAppeals.value;
     else list = completedAppeals.value;
 
     if (!searchQuery.value) return list;
@@ -157,8 +158,8 @@ function onView(appeal) {
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">Пользователь</div>
-                    <div class="email">user@profspb.ru</div>
+                    <div class="name">Администратор</div>
+                    <div class="email">admin@profspb.ru</div>
                     <button class="logout">Выйти</button>
                 </div>
             </div>

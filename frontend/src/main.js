@@ -7,12 +7,14 @@ import Home from "./views/Home.vue";
 import Login from "./views/Login.vue";
 import Register from "./views/Register.vue";
 import Profile from "./views/Profile.vue";
+import AdminProfile from "./views/AdminProfile.vue";
 
 const routes = [
   { path: "/", component: Home },
   { path: "/login", component: Login },
   { path: "/register", component: Register },
-  // { path: "/profile", component: Profile },  // in develop
+  { path: "/profile", component: Profile }, // in develop
+  { path: "/admin-profile", component: AdminProfile }, // in develop
 ];
 
 const router = createRouter({
