@@ -32,14 +32,127 @@
 
         <div class="col status">
             <span class="badge" :class="badgeClass">{{ statusText }}</span>
-
-            <button class="btn-outline" @click="view">Просмотр заявки</button>
+            <button class="btn-outline" @click="openModal">Просмотр заявки</button>
         </div>
     </div>
+
+    <!-- Modal Overlay    -->
+    <Teleport to="body">
+        <Transition name="modal">
+            <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <button class="back-btn" @click="closeModal" aria-label="Назад">
+                            <MdiArrowLeft />
+                        </button>
+                        <h1 class="modal-title">Заявка #{{ displayNumber }}</h1>
+                    </div>
+
+                    <div class="modal-card">
+                        <div class="detail-row">
+                            <div class="detail-icon detail-icon--flag">
+                                <MdiFlag />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Тип обращения</div>
+                                <div class="detail-value">{{ displayType }}</div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
+                            <div class="detail-icon detail-icon--category">
+                                <MdiHome />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Категория</div>
+                                <div class="detail-value">{{ displayProblemCategory }}</div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
+                            <div class="detail-icon" :class="statusIconClass">
+                                <component :is="statusIcon" />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label" style="padding-left: 6px">Статус</div>
+                                <span class="badge badge-modal" :class="badgeClass">{{ statusText }}</span>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
+                            <div class="detail-icon detail-icon--desc">
+                                <MdiFileText />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Описание обращения</div>
+                                <div class="detail-value detail-value--title">{{ displayProblemCategory }}</div>
+                                <div class="detail-value detail-value--body">{{ fullDescription }}</div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
+                            <div class="detail-icon detail-icon--author">
+                                <MdiAccount />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Автор обращения</div>
+                                <div class="detail-value">{{ displayContactName }}</div>
+                                <div class="detail-value detail-value--sub">
+                                    {{ displayContactEmail
+                                    }}<span v-if="displayContactEmail && displayContactPhone">, </span>{{
+                                        displayContactPhone }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
+                            <div class="detail-icon detail-icon--date">
+                                <MdiCalendar />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Дата поступления</div>
+                                <div class="detail-value">
+                                    {{ displayDate
+                                    }}<span v-if="displayTime"> в {{ displayTime }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button v-if="showActionButton" @click="handleAction">
+                        {{ actionButtonText }}
+                    </Button>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed } from "vue";
+import { defineProps, defineEmits, computed, ref } from "vue";
+
+import MdiArrowLeft from "~icons/mdi/arrow-left";
+import MdiFlag from "~icons/mdi/flag";
+import MdiHome from "~icons/mdi/home";
+import MdiClock from "~icons/mdi/clock";
+import MdiFileText from "~icons/mdi/file-text";
+import MdiAccount from "~icons/mdi/account";
+import MdiCalendar from "~icons/mdi/calendar";
+import MdiCheckCircle from "~icons/mdi/check-circle";
+import MdiAlertCircle from "~icons/mdi/alert-circle";
+import MdiClockTimeFour from "~icons/mdi/clock-time-four";
+
+import Button from "./Button.vue";
 
 const props = defineProps({
     appeal: {
@@ -48,7 +161,24 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["view"]);
+const emit = defineEmits(["view", "action"]);
+
+const isModalOpen = ref(false);
+
+function openModal() {
+    isModalOpen.value = true;
+    document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+    isModalOpen.value = false;
+    document.body.style.overflow = "";
+}
+
+function handleAction() {
+    alert("ТУТ НАДО ПРИВЯЗАТЬ К БЭКЕНДУ");
+    closeModal();
+}
 
 const displayNumber = computed(
     () => props.appeal?.appealNumber ?? props.appeal?.number ?? "",
@@ -121,8 +251,8 @@ const dateParts = computed(() => {
     }
 
     return {
-        date: d.toLocaleDateString(),
-        time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        date: d.toLocaleDateString("ru-RU"),
+        time: d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
     };
 });
 
@@ -137,21 +267,52 @@ const statusText = computed(() => {
     return String(s);
 });
 
-const badgeClass = computed(() => {
+const isStatusNew = computed(() => {
     const n = statusText.value.toLowerCase();
-    if (n.includes("нов") || n.includes("new")) return "badge-new";
-    if (
+    return n.includes("нов") || n.includes("new");
+});
+
+const isStatusProcessing = computed(() => {
+    const n = statusText.value.toLowerCase();
+    return (
         n.includes("рассмотр") ||
         n.includes("review") ||
         n.includes("processing") ||
         n.includes("inprogress") ||
         n.includes("in_progress") ||
         n.includes("in progress")
-    )
-        return "badge-processing";
-    if (n.includes("заверш") || n.includes("done") || n.includes("completed"))
-        return "badge-done";
+    );
+});
+
+const isStatusDone = computed(() => {
+    const n = statusText.value.toLowerCase();
+    return n.includes("заверш") || n.includes("done") || n.includes("completed");
+});
+
+const badgeClass = computed(() => {
+    if (isStatusNew.value) return "badge-new";
+    if (isStatusProcessing.value) return "badge-processing";
+    if (isStatusDone.value) return "badge-done";
     return "badge-processing";
+});
+
+const statusIcon = computed(() => {
+    if (isStatusDone.value) return MdiCheckCircle;
+    if (isStatusProcessing.value) return MdiClockTimeFour;
+    return MdiAlertCircle;
+});
+
+const statusIconClass = computed(() => {
+    if (isStatusDone.value) return "detail-icon detail-icon--status-done";
+    if (isStatusProcessing.value) return "detail-icon detail-icon--status-processing";
+    return "detail-icon detail-icon--status-new";
+});
+
+const showActionButton = computed(() => !isStatusDone.value);
+
+const actionButtonText = computed(() => {
+    if (isStatusProcessing.value) return "Завершить обработку";
+    return "Принять в обработку";
 });
 
 function view() {
@@ -160,6 +321,7 @@ function view() {
 </script>
 
 <style scoped>
+/* List Row */
 .appeal-row {
     box-sizing: border-box;
     display: grid;
@@ -171,14 +333,12 @@ function view() {
     border-radius: 12px;
     border: 1px solid var(--color-border, #e6e6e6);
     background: var(--color-bg-option, #fff);
-
     font-family: var(--font-text);
     font-size: 15px;
 }
 
 .col {
     min-width: 0;
-    /* allow children to shrink and ellipsis to work */
 }
 
 .id {
@@ -258,7 +418,7 @@ function view() {
     display: flex;
     gap: 30px;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
 }
 
 .badge {
@@ -274,8 +434,8 @@ function view() {
 }
 
 .badge-processing {
-    background: #e6f4ea;
-    color: #1f8d52;
+    background: #fef3c7;
+    color: #92400e;
 }
 
 .badge-done {
@@ -295,10 +455,201 @@ function view() {
     font-size: 14px;
 }
 
-/* Desktop-only adjustments — keep layout fixed for PC as requested */
 @media (min-width: 1025px) {
     .appeal-row {
         font-size: 15px;
     }
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-container {
+    background: #f5f5f5;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 860px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 28px 32px 32px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+.back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    flex-shrink: 0;
+    font-size: 20px;
+    transition: background 0.15s;
+}
+
+.back-btn:hover {
+    background: #f0f0f0;
+}
+
+.modal-title {
+    font-family: var(--font-text, sans-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.modal-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 8px 24px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 0 -24px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0;
+}
+
+.detail-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 20px;
+}
+
+.detail-icon--flag {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--category {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--status-new {
+    background: #ffd8b5;
+    color: #d97706;
+}
+
+.detail-icon--status-processing {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.detail-icon--status-done {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--desc {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--author {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--date {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.detail-label {
+    font-size: 13px;
+    color: #8a8a8a;
+    font-family: var(--font-text, sans-serif);
+}
+
+.detail-value {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-family: var(--font-text, sans-serif);
+    line-height: 1.3;
+}
+
+.detail-value--title {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.detail-value--body {
+    font-size: 14px;
+    font-weight: 400;
+    color: #555;
+    line-height: 1.55;
+    margin-top: 2px;
+}
+
+.detail-value--sub {
+    font-size: 14px;
+    font-weight: 400;
+    color: #777;
+}
+
+.badge-modal {
+    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+    transition: opacity 0.22s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
 }
 </style>
