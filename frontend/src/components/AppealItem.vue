@@ -16,7 +16,6 @@
         </div>
 
         <div class="col desc">
-            <div class="desc-title">{{ shortDescription }}</div>
             <div class="excerpt">{{ fullDescription }}</div>
         </div>
 
@@ -76,11 +75,6 @@ const fullDescription = computed(
         props.appeal?.title ??
         "",
 );
-const shortDescription = computed(() => {
-    const d = fullDescription.value ?? "";
-    if (!d) return "";
-    return d.length > 100 ? d.slice(0, 100).trim() + "…" : d;
-});
 
 const displayContactName = computed(
     () => props.appeal?.contactName ?? props.appeal?.author ?? "",
@@ -169,7 +163,7 @@ function view() {
 .appeal-row {
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: 70px 120px 220px 1fr 140px 160px 220px;
+    grid-template-columns: 60px 140px 220px minmax(150px, 1fr) 140px 160px 330px;
     gap: 12px;
     align-items: start;
     width: 100%;
@@ -183,7 +177,8 @@ function view() {
 }
 
 .col {
-    min-width: 0; /* allow children to shrink and ellipsis to work */
+    min-width: 0;
+    /* allow children to shrink and ellipsis to work */
 }
 
 .id {
@@ -221,15 +216,6 @@ function view() {
 .cat-sub {
     font-size: 13px;
     color: var(--color-text-muted, #8a8a8a);
-}
-
-.desc-title {
-    font-weight: 600;
-    margin-bottom: 6px;
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .excerpt {

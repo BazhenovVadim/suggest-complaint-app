@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "../components/AppealItem.vue";
@@ -16,10 +16,244 @@ function selectTab(id) {
 }
 
 const searchQuery = ref("");
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+// moving bar
+const tabsEl = ref(null);
+const activeLeft = ref(0);
+const activeWidth = ref(0);
+const hoverLeft = ref(0);
+const hoverWidth = ref(0);
+const isHovering = ref(false);
+
+const tabsStyle = computed(() => ({
+    "--indicator-left": activeLeft.value + "px",
+    "--indicator-width": activeWidth.value + "px",
+    "--hover-left": hoverLeft.value + "px",
+    "--hover-width": (isHovering.value ? hoverWidth.value : 0) + "px",
+}));
+
+function updateIndicator() {
+    if (!tabsEl.value) return;
+    const activeBtn = tabsEl.value.querySelector('.tab.active');
+    if (activeBtn) {
+        const btnRect = activeBtn.getBoundingClientRect();
+        const containerRect = tabsEl.value.getBoundingClientRect();
+        activeLeft.value = Math.max(0, btnRect.left - containerRect.left);
+        activeWidth.value = btnRect.width;
+    } else {
+        activeLeft.value = 0;
+        activeWidth.value = 0;
+    }
+}
+
+function onTabHover(e) {
+    if (!tabsEl.value) return;
+    const btn = e.currentTarget;
+    if (!btn) return;
+    const btnRect = btn.getBoundingClientRect();
+    const containerRect = tabsEl.value.getBoundingClientRect();
+    const left = Math.max(0, btnRect.left - containerRect.left);
+    const width = Math.min(btnRect.width, Math.max(0, containerRect.width - left));
+    hoverLeft.value = left;
+    hoverWidth.value = width;
+    isHovering.value = true;
+}
+
+function onTabLeave() {
+    isHovering.value = false;
+}
+
+onMounted(() => {
+    nextTick(() => {
+        updateIndicator();
+        window.addEventListener('resize', updateIndicator);
+    });
+});
+
+watch(activeTab, () => {
+    nextTick(updateIndicator);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateIndicator);
+});
 
 // Заглушки в форме DTO (AppealResponseDto). В продакшене данные будут приходить с сервера.
 const unprocessedAppeals = ref([
     {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    },
+    {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
+        id: "3f1a7e30-0000-4000-8000-000000000001",
+        appealNumber: 1337,
+        type: "Жалоба",
+        campusLocation: "Студгородок",
+        problemCategory: "Общежитие/Комната",
+        timeframe: "Срочно",
+        description:
+            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
+        attachments: [],
+        contactName: "Костик В. В.",
+        contactPhone: "+79993398485",
+        contactEmail: "kostik444@mail.ru",
+        personalDataConsent: true,
+        createdAt: "2025-11-11T12:45:00Z",
+        status: "Новая",
+        userId: "e8a1a9f0-0000-4000-8000-000000000011",
+    }, {
         id: "3f1a7e30-0000-4000-8000-000000000001",
         appealNumber: 1337,
         type: "Жалоба",
@@ -117,7 +351,7 @@ const completedAppeals = ref([
     },
 ]);
 
-const currentAppeals = computed(() => {
+const filteredAppeals = computed(() => {
     let list = [];
     if (activeTab.value === "unprocessed") list = unprocessedAppeals.value;
     else if (activeTab.value === "processing") list = processingAppeals.value;
@@ -143,9 +377,62 @@ const currentAppeals = computed(() => {
     });
 });
 
+const totalPages = computed(() => {
+    return Math.ceil(filteredAppeals.value.length / itemsPerPage);
+});
+
+const currentAppeals = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredAppeals.value.slice(start, end);
+});
+
+const pagerButtons = computed(() => {
+    const buttons = [];
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage.value - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages.value, startPage + maxButtons - 1);
+
+    if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        buttons.push(i);
+    }
+
+    return buttons;
+});
+
 function onView(appeal) {
     console.log("Посмотреть заявку:", appeal);
 }
+
+function goToPage(page) {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+}
+
+function goToPreviousPage() {
+    if (currentPage.value > 1) {
+        currentPage.value--;
+    }
+}
+
+function goToNextPage() {
+    if (currentPage.value < totalPages.value) {
+        currentPage.value++;
+    }
+}
+
+watch(activeTab, () => {
+    currentPage.value = 1;
+});
+
+watch(searchQuery, () => {
+    currentPage.value = 1;
+});
 </script>
 
 <template>
@@ -171,29 +458,19 @@ function onView(appeal) {
             <header class="main-header">
                 <h1 class="title">Заявки</h1>
                 <div class="header-actions">
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        class="search"
-                        placeholder="Поиск по заявкам"
-                        aria-label="Поиск по заявкам"
-                    />
+                    <input v-model="searchQuery" type="search" class="search" placeholder="Поиск по заявкам"
+                        aria-label="Поиск по заявкам" />
                 </div>
             </header>
 
-            <nav class="tabs" role="tablist" aria-label="Типы заявок">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    :id="`tab-${tab.id}`"
-                    class="tab"
-                    :class="{ active: activeTab === tab.id }"
-                    role="tab"
-                    :aria-selected="activeTab === tab.id"
-                    @click="selectTab(tab.id)"
-                >
+            <nav class="tabs" role="tablist" aria-label="Типы заявок" ref="tabsEl" :style="tabsStyle">
+                <button v-for="tab in tabs" :key="tab.id" :id="`tab-${tab.id}`" class="tab"
+                    :class="{ active: activeTab === tab.id }" role="tab" :aria-selected="activeTab === tab.id"
+                    @click="selectTab(tab.id)" @mouseenter="onTabHover" @mouseleave="onTabLeave" :data-tab="tab.id">
                     {{ tab.label }}
                 </button>
+                <div class="hoverbar" aria-hidden></div>
+                <div class="indicator" aria-hidden></div>
             </nav>
 
             <div class="table-headers" aria-hidden>
@@ -208,25 +485,24 @@ function onView(appeal) {
 
             <section class="content">
                 <div v-if="currentAppeals.length === 0" class="empty">
-                    Нет заявок для отображения. :\
+                    Нет заявок для отображения :(
                 </div>
                 <div class="appeals">
-                    <AppealItem
-                        v-for="appeal in currentAppeals"
-                        :key="appeal.appealNumber ?? appeal.number"
-                        :appeal="appeal"
-                        @view="onView"
-                    />
+                    <AppealItem v-for="appeal in currentAppeals" :key="appeal.appealNumber ?? appeal.number"
+                        :appeal="appeal" @view="onView" />
                 </div>
                 <footer class="pagination">
                     <div class="showing">
                         Показано {{ currentAppeals.length }} из
-                        {{ currentAppeals.length }} заявок
+                        {{ filteredAppeals.length }} заявок
                     </div>
                     <div class="pager">
-                        <button class="pbtn">◀</button>
-                        <button class="pbtn active">1</button>
-                        <button class="pbtn">▶</button>
+                        <button class="pbtn" :disabled="currentPage === 1" @click="goToPreviousPage">◀</button>
+                        <button v-for="page in pagerButtons" :key="page" class="pbtn"
+                            :class="{ active: currentPage === page }" @click="goToPage(page)">
+                            {{ page }}
+                        </button>
+                        <button class="pbtn" :disabled="currentPage === totalPages" @click="goToNextPage">▶</button>
                     </div>
                 </footer>
             </section>
@@ -270,7 +546,7 @@ function onView(appeal) {
 }
 
 .avatar {
-    width: 70px;
+    width: 60px;
     height: auto;
     color: #00ad53;
 }
@@ -318,7 +594,7 @@ function onView(appeal) {
 }
 
 .title {
-    font-size: 28px;
+    font-size: 30px;
     margin: 0;
     font-weight: 700;
 }
@@ -329,13 +605,28 @@ function onView(appeal) {
     padding: 12px 14px;
     border-radius: 10px;
     border: 1px solid var(--color-border, #e6e6e6);
+    font-family: var(--font-text);
+    font-weight: 500;
 }
 
 .tabs {
     display: flex;
-    gap: 12px;
     margin: 10px 0 30px 0;
     align-items: center;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.tabs::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--color-border, #e6e6e6);
+    border-radius: 4px;
+    z-index: 1;
 }
 
 .tab {
@@ -346,7 +637,7 @@ function onView(appeal) {
     cursor: pointer;
     font-family: var(--font-text);
     font-weight: 600;
-    font-size: 18px;
+    font-size: 20px;
     color: var(--color-text, #222);
     position: relative;
 }
@@ -359,15 +650,31 @@ function onView(appeal) {
     color: var(--color-accent, #2a9d8f);
 }
 
-.tab.active::after {
-    content: "";
+.tabs .hoverbar {
     position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: -6px;
+    bottom: 0;
+    left: var(--hover-left, 0);
+    width: var(--hover-width, 0);
+    height: 4px;
+    background: var(--color-accent, #2a9d8f);
+    opacity: 0.4;
+    border-radius: 4px;
+    z-index: 2;
+    transition: left 200ms ease, width 200ms ease, opacity 160ms ease;
+    pointer-events: none;
+}
+
+.tabs .indicator {
+    position: absolute;
+    bottom: 0;
+    left: var(--indicator-left, 0);
+    width: var(--indicator-width, 0);
     height: 4px;
     background: var(--color-accent, #2a9d8f);
     border-radius: 4px;
+    z-index: 3;
+    transition: left 350ms cubic-bezier(0.2, 0.8, 0.2, 1), width 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
 }
 
 .table-headers {
@@ -415,6 +722,11 @@ function onView(appeal) {
     cursor: pointer;
 }
 
+.pbtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .pbtn.active {
     background: var(--color-accent, #cfeee0);
 }
@@ -444,7 +756,7 @@ function onView(appeal) {
 @media (min-width: 1025px) {
     .table-headers {
         display: grid;
-        grid-template-columns: 70px 120px 220px 1fr 140px 160px 220px;
+        grid-template-columns: 60px 140px 220px minmax(150px, 1fr) 140px 160px 330px;
         gap: 12px;
         font-weight: 600;
         padding: 0 18px;

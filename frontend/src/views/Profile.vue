@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "../components/AppealItem.vue";
@@ -15,6 +15,68 @@ function selectTab(id) {
 }
 
 const searchQuery = ref("");
+
+// moving bar
+
+const tabsEl = ref(null);
+const activeLeft = ref(0);
+const activeWidth = ref(0);
+const hoverLeft = ref(0);
+const hoverWidth = ref(0);
+const isHovering = ref(false);
+
+const tabsStyle = computed(() => ({
+    "--indicator-left": activeLeft.value + "px",
+    "--indicator-width": activeWidth.value + "px",
+    "--hover-left": hoverLeft.value + "px",
+    "--hover-width": (isHovering.value ? hoverWidth.value : 0) + "px",
+}));
+
+function updateIndicator() {
+    if (!tabsEl.value) return;
+    const activeBtn = tabsEl.value.querySelector('.tab.active');
+    if (activeBtn) {
+        const btnRect = activeBtn.getBoundingClientRect();
+        const containerRect = tabsEl.value.getBoundingClientRect();
+        activeLeft.value = Math.max(0, btnRect.left - containerRect.left);
+        activeWidth.value = btnRect.width;
+    } else {
+        activeLeft.value = 0;
+        activeWidth.value = 0;
+    }
+}
+
+function onTabHover(e) {
+    if (!tabsEl.value) return;
+    const btn = e.currentTarget;
+    if (!btn) return;
+    const btnRect = btn.getBoundingClientRect();
+    const containerRect = tabsEl.value.getBoundingClientRect();
+    const left = Math.max(0, btnRect.left - containerRect.left);
+    const width = Math.min(btnRect.width, Math.max(0, containerRect.width - left));
+    hoverLeft.value = left;
+    hoverWidth.value = width;
+    isHovering.value = true;
+}
+
+function onTabLeave() {
+    isHovering.value = false;
+}
+
+onMounted(() => {
+    nextTick(() => {
+        updateIndicator();
+        window.addEventListener('resize', updateIndicator);
+    });
+});
+
+watch(activeTab, () => {
+    nextTick(updateIndicator);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateIndicator);
+});
 
 // Заглушки в форме DTO (AppealResponseDto). В продакшене данные будут приходить с сервера.
 const unprocessedAppeals = ref([
@@ -170,29 +232,19 @@ function onView(appeal) {
             <header class="main-header">
                 <h1 class="title">Заявки</h1>
                 <div class="header-actions">
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        class="search"
-                        placeholder="Поиск по заявкам"
-                        aria-label="Поиск по заявкам"
-                    />
+                    <input v-model="searchQuery" type="search" class="search" placeholder="Поиск по заявкам"
+                        aria-label="Поиск по заявкам" />
                 </div>
             </header>
 
-            <nav class="tabs" role="tablist" aria-label="Типы заявок">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    :id="`tab-${tab.id}`"
-                    class="tab"
-                    :class="{ active: activeTab === tab.id }"
-                    role="tab"
-                    :aria-selected="activeTab === tab.id"
-                    @click="selectTab(tab.id)"
-                >
+            <nav class="tabs" role="tablist" aria-label="Типы заявок" ref="tabsEl" :style="tabsStyle">
+                <button v-for="tab in tabs" :key="tab.id" :id="`tab-${tab.id}`" class="tab"
+                    :class="{ active: activeTab === tab.id }" role="tab" :aria-selected="activeTab === tab.id"
+                    @click="selectTab(tab.id)" @mouseenter="onTabHover" @mouseleave="onTabLeave" :data-tab="tab.id">
                     {{ tab.label }}
                 </button>
+                <div class="hoverbar" aria-hidden></div>
+                <div class="indicator" aria-hidden></div>
             </nav>
 
             <div class="table-headers" aria-hidden>
@@ -207,15 +259,11 @@ function onView(appeal) {
 
             <section class="content">
                 <div v-if="currentAppeals.length === 0" class="empty">
-                    Нет заявок для отображения. :\
+                    Нет заявок для отображения :(
                 </div>
                 <div class="appeals">
-                    <AppealItem
-                        v-for="appeal in currentAppeals"
-                        :key="appeal.appealNumber ?? appeal.number"
-                        :appeal="appeal"
-                        @view="onView"
-                    />
+                    <AppealItem v-for="appeal in currentAppeals" :key="appeal.appealNumber ?? appeal.number"
+                        :appeal="appeal" @view="onView" />
                 </div>
                 <footer class="pagination">
                     <div class="showing">
@@ -269,7 +317,7 @@ function onView(appeal) {
 }
 
 .avatar {
-    width: 70px;
+    width: 60px;
     height: auto;
     color: #00ad53;
 }
@@ -317,7 +365,7 @@ function onView(appeal) {
 }
 
 .title {
-    font-size: 28px;
+    font-size: 30px;
     margin: 0;
     font-weight: 700;
 }
@@ -328,13 +376,28 @@ function onView(appeal) {
     padding: 12px 14px;
     border-radius: 10px;
     border: 1px solid var(--color-border, #e6e6e6);
+    font-family: var(--font-text);
+    font-weight: 500;
 }
 
 .tabs {
     display: flex;
-    gap: 12px;
     margin: 10px 0 30px 0;
     align-items: center;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.tabs::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--color-border, #e6e6e6);
+    border-radius: 4px;
+    z-index: 1;
 }
 
 .tab {
@@ -345,7 +408,7 @@ function onView(appeal) {
     cursor: pointer;
     font-family: var(--font-text);
     font-weight: 600;
-    font-size: 18px;
+    font-size: 20px;
     color: var(--color-text, #222);
     position: relative;
 }
@@ -358,15 +421,31 @@ function onView(appeal) {
     color: var(--color-accent, #2a9d8f);
 }
 
-.tab.active::after {
-    content: "";
+.tabs .hoverbar {
     position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: -6px;
+    bottom: 0;
+    left: var(--hover-left, 0);
+    width: var(--hover-width, 0);
+    height: 4px;
+    background: var(--color-accent, #2a9d8f);
+    opacity: 0.4;
+    border-radius: 4px;
+    z-index: 2;
+    transition: left 200ms ease, width 200ms ease, opacity 160ms ease;
+    pointer-events: none;
+}
+
+.tabs .indicator {
+    position: absolute;
+    bottom: 0;
+    left: var(--indicator-left, 0);
+    width: var(--indicator-width, 0);
     height: 4px;
     background: var(--color-accent, #2a9d8f);
     border-radius: 4px;
+    z-index: 3;
+    transition: left 350ms cubic-bezier(0.2, 0.8, 0.2, 1), width 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
 }
 
 .table-headers {
@@ -443,7 +522,7 @@ function onView(appeal) {
 @media (min-width: 1025px) {
     .table-headers {
         display: grid;
-        grid-template-columns: 70px 120px 220px 1fr 140px 160px 220px;
+        grid-template-columns: 60px 140px 220px minmax(150px, 1fr) 140px 160px 330px;
         gap: 12px;
         font-weight: 600;
         padding: 0 18px;
