@@ -5,6 +5,7 @@ export const useUserStore = defineStore("user", {
   state: () => ({
     profile: null,
     accessToken: null,
+    userId: null,
     refreshToken: localStorage.getItem("refreshToken") || null,
     accessTokenExpiresInSeconds: null,
   }),

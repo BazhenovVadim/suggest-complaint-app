@@ -39,6 +39,20 @@ api.interceptors.response.use(
   },
 );
 
+const refreshAccessToken = async () => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  const userId = localStorage.getItem('userId');
+
+  if (!refreshToken || !userId) {
+    throw new Error("Refresh token is missing");
+  }
+
+  const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+    userId,
+    refreshToken,
+  });
+}
+
 export default {
   login(data) {
     return api.post('api/auth/login', data)
@@ -64,39 +78,3 @@ export default {
     })
   },
 }
-
-// const refreshAccessToken = async () => {
-//   const auth = useUserStore()
-//   const refreshToken = auth.refreshToken;
-//   const userId = auth.userId;
-
-//   if (!refreshToken || !userId) {
-//     throw new Error("Refresh token is missing");
-//   }
-
-//   const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-//     userId,
-//     refreshToken,
-//   });
-
-//   saveAuthTokens(response.data);
-//   return response.data.accessToken;
-// };
-
-// const logout = async () => {
-//   const auth = useUserStore()
-
-//   const refreshToken = auth.refreshToken;
-//   const userId = auth.userId;
-
-//   try {
-//     if (userId) {
-//       await axios.post(`${API_BASE_URL}/api/auth/logout`, {
-//         userId,
-//         refreshToken,
-//       });
-//     }
-//   } finally {
-//     clearAuthTokens();
-//   }
-// };
