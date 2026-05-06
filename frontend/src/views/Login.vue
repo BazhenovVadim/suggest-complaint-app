@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import { API_BASE_URL, saveAuthTokens } from "../api";
 import MdiEye from "~icons/mdi/eye";
 import MdiEyeOff from "~icons/mdi/eye-off";
 
@@ -68,14 +69,13 @@ const handleSubmit = async () => {
 
     try {
         const response = await axios.post(
-            "http://localhost:8080/api/auth/login",
+            `${API_BASE_URL}/api/auth/login`,
             {
                 email: email.value,
                 password: password.value,
             },
         );
-        localStorage.setItem("accessToken", response.data.accessToken);
-        localStorage.setItem("refreshToken", response.data.refreshToken);
+        saveAuthTokens(response.data);
         router.push("/");
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
