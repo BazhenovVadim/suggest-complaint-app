@@ -14,6 +14,7 @@ const password = ref("");
 const error = ref("");
 const loading = ref(false);
 const router = useRouter();
+const userStore = useUserStore();
 
 const isEmailError = ref(false);
 const isEmailShaking = ref(false);

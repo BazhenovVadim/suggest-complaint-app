@@ -118,11 +118,11 @@ const handleSubmit = async () => {
         const appealData = {
             type: selectedType.value,
             campusLocation:
-                selectedType === "COMPLIANT"
+                selectedType.value === "COMPLAINT"
                     ? selectedLocation.value
                     : "STUDENT_CAMPUS",
             problemCategory:
-                selectedType === "COMPLIANT" ? selectedCategory.value : "OTHER",
+                selectedType.value === "COMPLAINT" ? selectedCategory.value : "OTHER",
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
             contactName: name.value,
@@ -218,7 +218,7 @@ const handleSubmit = async () => {
                 <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
                 <Button @click="handleSubmit">Отправить обращение</Button>
             </div>
-            <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
+            <p v-if="errorMessage" class="error-msg">{{ errorMessage.value }}</p>
         </div>
         <footer>Ну футер там и т.д.</footer>
     </main>

@@ -17,6 +17,7 @@ const consent = ref(false);
 const error = ref("");
 const loading = ref(false);
 const router = useRouter();
+const userStore = useUserStore();
 
 const isEmailError = ref(false);
 const isEmailShaking = ref(false);
@@ -81,7 +82,7 @@ const handleSubmit = async () => {
     try {
         await userStore.register({ email: email.value, password: password.value });
 
-        router.push("/");
+        router.push("/login");
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {

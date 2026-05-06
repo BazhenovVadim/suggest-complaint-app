@@ -10,6 +10,7 @@ api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem('accessToken')
 
   if (accessToken) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${accessToken}`
   }
 
@@ -29,10 +30,23 @@ api.interceptors.response.use(
 
     try {
       const newAccessToken = await refreshAccessToken();
+      originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      clearAuthTokens();
+      // Try to clear tokens via Pinia store, fallback to clearing localStorage
+      try {
+        const module = await import('./stores/user');
+        const { useUserStore } = module;
+        const userStore = useUserStore();
+        userStore.clearAuthTokens();
+      } catch (e) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('accessTokenExpiresInSeconds');
+      }
+
       window.location.href = "/login";
       return Promise.reject(refreshError);
     }
@@ -51,6 +65,39 @@ const refreshAccessToken = async () => {
     userId,
     refreshToken,
   });
+
+  const data = response.data || {};
+  const newAccessToken = data.accessToken;
+  const newRefreshToken = data.refreshToken || refreshToken;
+  const newUserId = data.userId || userId;
+  const accessTokenExpiresInSeconds = data.accessTokenExpiresInSeconds;
+
+  if (newAccessToken) {
+    localStorage.setItem('accessToken', newAccessToken);
+  }
+  if (newRefreshToken) {
+    localStorage.setItem('refreshToken', newRefreshToken);
+  }
+  if (newUserId) {
+    localStorage.setItem('userId', newUserId);
+  }
+  if (accessTokenExpiresInSeconds != null) {
+    localStorage.setItem('accessTokenExpiresInSeconds', accessTokenExpiresInSeconds);
+  }
+
+  try {
+    const module = await import('./stores/user');
+    const { useUserStore } = module;
+    const userStore = useUserStore();
+    userStore.saveAuthTokens({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      userId: newUserId,
+      accessTokenExpiresInSeconds,
+    });
+  } catch (e) { }
+
+  return newAccessToken;
 }
 
 export default {
@@ -62,12 +109,12 @@ export default {
     return api.post('api/auth/register', data)
   },
 
-  logout() {
-    return api.post('api/auth/logout')
+  logout(data) {
+    return api.post('api/auth/logout', data)
   },
 
-  refresh() {
-    return api.post('api/auth/refresh')
+  refresh(data) {
+    return api.post('api/auth/refresh', data)
   },
 
   submitAppeal(data) {
