@@ -6,7 +6,7 @@ const model = defineModel();
     <textarea
         class="textbox"
         v-model="model"
-        placeholder="Опишите здесь вашу проблему. Чем подробнее вы опишете проблему, тем проще будет её решить."
+        placeholder="Опишите здесь вашу проблему. Чем подробнее вы её опишете, тем проще будет её решить."
     ></textarea>
 </template>
 
@@ -31,7 +31,7 @@ const model = defineModel();
 
 @media (min-width: 768px) {
     .textbox {
-        font-size: 26px;
+        font-size: 24px;
     }
 }
 </style>
