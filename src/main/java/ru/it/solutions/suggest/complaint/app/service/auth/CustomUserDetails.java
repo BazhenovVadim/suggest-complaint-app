@@ -3,11 +3,12 @@ package ru.it.solutions.suggest.complaint.app.service.auth;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -18,7 +19,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // пока ролей нет
+        return List.of(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole().name()));
     }
 
     @Override
@@ -61,5 +62,9 @@ public class CustomUserDetails implements UserDetails {
 
     public boolean isConfirmed() {
         return userEntity.isConfirmed();
+    }
+
+    public boolean isAdmin() {
+        return userEntity.getRole() == ru.it.solutions.suggest.complaint.app.model.enums.UserRole.ADMIN;
     }
 }
