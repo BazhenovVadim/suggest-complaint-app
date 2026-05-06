@@ -1,36 +1,50 @@
 import { defineStore } from "pinia";
+import api from '@/api'
 
 export const useUserStore = defineStore("user", {
   state: () => ({
     profile: null,
     accessToken: null,
     refreshToken: localStorage.getItem("refreshToken") || null,
+    accessTokenExpiresInSeconds: null,
   }),
   actions: {
-    async register({ email, password }) {
-      const response = await axios.post("/api/auth/register", {
-        email: email.value,
-        password: password.value,
-      });
-      this.accessToken = response.data.accessToken;
-      this.refreshToken = response.data.refreshToken;
+    saveAuthTokens({ accessToken, refreshToken, userId, accessTokenExpiresInSeconds }) {
+      this.accessToken = accessToken;
+      this.refreshToken = refreshToken;
       localStorage.setItem("refreshToken", this.refreshToken);
+      if (accessTokenExpiresInSeconds) {
+        localStorage.setItem("accessTokenExpiresInSeconds", accessTokenExpiresInSeconds);
+      }
     },
-    async login({ email, password }) {
-      const response = await axios.post("/api/auth/login", {
-        email: email.value,
-        password: password.value,
-      });
-      this.accessToken = response.data.accessToken;
-      this.refreshToken = response.data.refreshToken;
-      localStorage.setItem("refreshToken", this.refreshToken);
-    },
-    logout() {
-      this.profile = null;
+
+    clearAuthTokens() {
       this.accessToken = null;
       this.refreshToken = null;
-      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("accessTokenExpiresInSeconds");
     },
+
+    async register({ email, password }) {
+      const response = await api.register({ email, password });
+      this.saveAuthTokens(response.data);
+    },
+
+    async login({ email, password }) {
+
+      const response = await api.login({ email, password })
+
+      saveAuthTokens(response.data);
+    },
+
+    async logout() {
+      try {
+        await api.logout()
+      } catch (_) { };
+
+      this.clearAuthTokens();
+    },
+
     async fetchProfile() {
       const response = await fetch("/api/user/profile", {
         headers: { Authorization: `Bearer ${this.refreshToken}` },

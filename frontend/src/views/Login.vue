@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
-import { API_BASE_URL, saveAuthTokens } from "../api";
+import { useUserStore } from "../stores/user";
+
 import MdiEye from "~icons/mdi/eye";
 import MdiEyeOff from "~icons/mdi/eye-off";
 
@@ -68,14 +68,7 @@ const handleSubmit = async () => {
     error.value = "";
 
     try {
-        const response = await axios.post(
-            `${API_BASE_URL}/api/auth/login`,
-            {
-                email: email.value,
-                password: password.value,
-            },
-        );
-        saveAuthTokens(response.data);
+        await userStore.login({ email: email.value, password: password.value });
         router.push("/");
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
@@ -105,32 +98,17 @@ const handleSubmit = async () => {
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
                     <h2>Email</h2>
-                    <Input
-                        class="email"
-                        :class="{ 'input-error': isEmailError, 'shake': isEmailShaking }"
-                        v-model="email"
-                        type="email"
-                        placeholder="Email"
-                        required
-                    />
+                    <Input class="email" :class="{ 'input-error': isEmailError, 'shake': isEmailShaking }"
+                        v-model="email" type="email" placeholder="Email" required />
                 </div>
                 <div class="field-group">
                     <h2>Пароль</h2>
                     <div class="input-wrapper">
-                        <Input
-                            class="password"
-                            :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
-                            :type="showPassword ? 'text' : 'password'"
-                            v-model="password"
-                            placeholder="Пароль"
-                            required
-                        />
-                        <button 
-                            type="button" 
-                            class="toggle-password-btn"
-                            @click="showPassword = !showPassword"
-                            :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
-                        >
+                        <Input class="password" :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
+                            :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Пароль"
+                            required />
+                        <button type="button" class="toggle-password-btn" @click="showPassword = !showPassword"
+                            :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'">
                             <component :is="showPassword ? Icons.eye : Icons.eyeOff" />
                         </button>
                     </div>
@@ -273,10 +251,27 @@ a:hover {
 }
 
 @keyframes shake {
-    10%, 90% { transform: translate3d(-2px, 0, 0); }
-    20%, 80% { transform: translate3d(4px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-    40%, 60% { transform: translate3d(6px, 0, 0); }
+
+    10%,
+    90% {
+        transform: translate3d(-2px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(4px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-6px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(6px, 0, 0);
+    }
 }
 
 .form :deep(button:disabled) {
@@ -292,14 +287,17 @@ a:hover {
     .main {
         padding: 30px;
     }
+
     .content {
         padding: 35px;
         min-width: 600px;
         width: 35vw;
     }
+
     h1 {
         font-size: 44px;
     }
+
     h2 {
         font-size: 26px;
     }

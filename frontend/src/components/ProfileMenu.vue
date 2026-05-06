@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
-import { logout as logoutRequest } from "../api";
+import { useUserStore } from "../stores/user";
 
 const router = useRouter();
 const showDropdown = ref(false);
@@ -14,7 +14,7 @@ const toggleDropdown = () => {
 };
 
 const logout = async () => {
-    await logoutRequest();
+    useUserStore().logout();
     showDropdown.value = false;
     router.push("/login");
 };
@@ -42,13 +42,9 @@ onMounted(() => {
         <IconMdiAccountCircle class="profile-icon" @click="toggleDropdown" />
         <transition name="dropdown">
             <div v-if="showDropdown" class="dropdown">
-                <a v-if="!isAuthenticated" href="#" @click.prevent="goToLogin"
-                    >Войти</a
-                >
+                <a v-if="!isAuthenticated" href="#" @click.prevent="goToLogin">Войти</a>
                 <template v-else>
-                    <a href="/profile" @click.prevent="goToStatuses"
-                        >Статусы заявок</a
-                    >
+                    <a href="/profile" @click.prevent="goToStatuses">Статусы заявок</a>
                     <a href="#" @click.prevent="logout">Выйти</a>
                 </template>
             </div>
@@ -119,10 +115,12 @@ onMounted(() => {
     .profile-icon {
         width: 70px;
     }
+
     .dropdown {
         padding: 16px 12px;
         min-width: 200px;
     }
+
     .dropdown a {
         font-size: 22px;
     }
