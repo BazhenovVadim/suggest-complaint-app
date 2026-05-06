@@ -23,6 +23,7 @@ const userStore = useUserStore();
 const firstname = ref("");
 const lastname = ref("");
 const middlename = ref("");
+const phone = ref("");
 
 const isEmailError = ref(false);
 const isEmailShaking = ref(false);
@@ -34,6 +35,8 @@ const isLastnameError = ref(false);
 const isLastnameShaking = ref(false);
 const isMiddlenameError = ref(false);
 const isMiddlenameShaking = ref(false);
+const isPhoneError = ref(false);
+const isPhoneShaking = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 
@@ -47,6 +50,7 @@ watch([password, confirmPassword], () => { isPasswordError.value = false; error.
 watch(firstname, () => { isFirstnameError.value = false; error.value = ""; });
 watch(lastname, () => { isLastnameError.value = false; error.value = ""; });
 watch(middlename, () => { isMiddlenameError.value = false; error.value = ""; });
+watch(phone, () => { error.value = ""; });
 
 
 const triggerError = (field, msg) => {
@@ -76,6 +80,11 @@ const triggerError = (field, msg) => {
         isMiddlenameShaking.value = false;
         setTimeout(() => isMiddlenameShaking.value = true, 10);
         setTimeout(() => isMiddlenameShaking.value = false, 600);
+    } else if (field === 'phone') {
+        isPhoneError.value = true;
+        isPhoneShaking.value = false;
+        setTimeout(() => isPhoneShaking.value = true, 10);
+        setTimeout(() => isPhoneShaking.value = false, 600);
     }
 };
 
@@ -83,6 +92,7 @@ const triggerError = (field, msg) => {
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validatePassword = (password) => /^(?=.*[0-9])(?=.*[A-Z]).{8,}$/.test(password);
 const validateName = (name) => /^[а-яА-ЯёЁa-zA-Z\s]+$/.test(name);
+const validatePhone = (phone) => /^\+?[0-9\s()-]{7,20}$/.test(phone);
 
 const handleSubmit = async () => {
 
@@ -115,6 +125,11 @@ const handleSubmit = async () => {
         return;
     }
 
+    if (phone.value && !validatePhone(phone.value)) {
+        triggerError('phone', "Введите корректный номер телефона");
+        return;
+    }
+
     if (!validateEmail(email.value)) {
         triggerError('email', "Введите корректный email адрес");
         return;
@@ -138,7 +153,8 @@ const handleSubmit = async () => {
         password: password.value,
         firstname: firstname.value,
         lastname: lastname.value,
-        middlename: middlename.value
+        middlename: middlename.value,
+        phone: phone.value
     };
 
     const vkUserId = route.query.vkUserId;
@@ -154,6 +170,17 @@ const handleSubmit = async () => {
 
     try {
         await userStore.register(registerData);
+
+        // Save profile data locally
+        const profileData = {
+            firstname: firstname.value,
+            middlename: middlename.value,
+            lastname: lastname.value,
+            email: email.value,
+            phone: phone.value,
+            fullName: `${firstname.value} ${middlename.value ? middlename.value + ' ' : ''}${lastname.value}`.trim()
+        };
+        localStorage.setItem('userProfile', JSON.stringify(profileData));
 
         await userStore.login({ email: email.value, password: password.value });
         router.push("/");
@@ -187,6 +214,12 @@ const handleSubmit = async () => {
                     <h2>Отчество <span class="optional">(если есть)</span></h2>
                     <Input class="middlename" :class="{ 'input-error': isMiddlenameError, 'shake': isMiddlenameShaking }"
                         v-model="middlename" placeholder="Отчество" />
+                </div>
+
+                <div class="field-group">
+                    <h2>Телефон <span class="optional">(опционально)</span></h2>
+                    <Input class="phone" :class="{ 'input-error': isPhoneError, 'shake': isPhoneShaking }"
+                        v-model="phone" placeholder="Телефон" />
                 </div>
 
                 <div class="field-group">

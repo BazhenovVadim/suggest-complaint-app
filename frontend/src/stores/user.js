@@ -47,6 +47,7 @@ export const useUserStore = defineStore("user", {
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
       localStorage.removeItem("accessTokenExpiresInSeconds");
+      localStorage.removeItem("userProfile");
     },
 
     async register(registerData) {

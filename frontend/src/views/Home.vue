@@ -63,11 +63,9 @@ const selectedLocation = ref(null);
 const selectedCategory = ref(null);
 const selectedTimeframe = ref(null);
 const errorMessage = ref("");
+const successMessage = ref("");
 const message = ref("");
 const attachments = ref([]);
-const name = ref("");
-const phone = ref("");
-const email = ref("");
 const consent = ref(false);
 
 watch(selectedLocation, () => {
@@ -84,6 +82,7 @@ watch(message, () => {
 
 watch(consent, () => {
     errorMessage.value = "";
+    successMessage.value = "";
 });
 
 const handleSubmit = async () => {
@@ -93,14 +92,16 @@ const handleSubmit = async () => {
         return;
     }
 
-    if (!selectedLocation.value) {
-        errorMessage.value = "Выберите место обращения";
-        return;
-    }
+    if (selectedType.value === "COMPLAINT") {
+        if (!selectedLocation.value) {
+            errorMessage.value = "Выберите место обращения";
+            return;
+        }
 
-    if (!selectedCategory.value) {
-        errorMessage.value = "Выберите категорию проблемы";
-        return;
+        if (!selectedCategory.value) {
+            errorMessage.value = "Выберите категорию проблемы";
+            return;
+        }
     }
 
     if (!message.value.trim()) {
@@ -115,6 +116,10 @@ const handleSubmit = async () => {
     }
 
     try {
+        // Get profile data
+        const profileData = localStorage.getItem('userProfile');
+        const profile = profileData ? JSON.parse(profileData) : {};
+
         const appealData = {
             type: selectedType.value,
             campusLocation:
@@ -125,9 +130,9 @@ const handleSubmit = async () => {
                 selectedType.value === "COMPLAINT" ? selectedCategory.value : "OTHER",
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
-            contactName: name.value,
-            contactPhone: phone.value,
-            contactEmail: email.value,
+            contactName: profile.fullName || '',
+            contactPhone: profile.phone || '',
+            contactEmail: profile.email || '',
             personalDataConsent: consent.value,
         };
 
@@ -140,10 +145,9 @@ const handleSubmit = async () => {
         selectedTimeframe.value = null;
         message.value = "";
         attachments.value = [];
-        name.value = "";
-        phone.value = "";
-        email.value = "";
         consent.value = false;
+        successMessage.value = "Заявка зарегистрирована";
+        errorMessage.value = "";
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -200,24 +204,11 @@ const handleSubmit = async () => {
                     </div>
                 </div>
             </div>
-            <div class="contacts">
-                <div class="contacts-header">
-                    <h2 style="margin: 0">
-                        Контакты для ответа
-                        <span style="color: #999999">(необязательно)</span>
-                    </h2>
-                </div>
-
-                <div class="inputs">
-                    <Input class="name" v-model="name" placeholder="Ваше имя" />
-                    <Input v-model="phone" placeholder="Телефон" />
-                    <Input v-model="email" placeholder="E-mail" />
-                </div>
-            </div>
             <div class="submit">
                 <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-                <Button @click="handleSubmit">Отправить обращение</Button>
+                <Button :disabled="!consent" @click="handleSubmit">Отправить обращение</Button>
             </div>
+            <p v-if="successMessage" class="success-msg">{{ successMessage.value }}</p>
             <p v-if="errorMessage" class="error-msg">{{ errorMessage.value }}</p>
         </div>
         <footer>Ну футер там и т.д.</footer>
@@ -265,7 +256,6 @@ const handleSubmit = async () => {
 }
 
 .problem,
-.contacts,
 .submit {
     width: 100%;
 }
@@ -311,23 +301,15 @@ const handleSubmit = async () => {
     gap: 10px;
 }
 
-.inputs {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
-
-.contacts-header {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    width: 100%;
-    margin: 20px 0;
-}
-
 .consent {
     margin-bottom: 20px;
+}
+
+.success-msg {
+    color: #2e7d32;
+    font-weight: bold;
+    text-align: center;
+    margin: 0;
 }
 
 .error-msg {
@@ -382,22 +364,8 @@ footer {
         max-width: none;
     }
 
-    .contacts-header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-
     .categories {
         flex-direction: row;
-    }
-
-    .inputs {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .name {
-        grid-column: span 2;
     }
 
     h1 {

@@ -29,6 +29,16 @@
     background: #50b377;
 }
 
+.button:disabled {
+    background: #d0d0d0;
+    color: #777;
+    cursor: not-allowed;
+}
+
+.button:disabled:hover {
+    background: #d0d0d0;
+}
+
 @media (min-width: 768px) {
     .button {
         font-size: 30px;
