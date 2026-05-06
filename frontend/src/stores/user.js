@@ -13,36 +13,28 @@ export const useUserStore = defineStore("user", {
   }),
   actions: {
     saveAuthTokens({ accessToken, refreshToken, userId, accessTokenExpiresInSeconds }) {
-      if (accessToken) {
+      if (accessToken !== undefined) {
         this.accessToken = accessToken;
-        localStorage.setItem("accessToken", accessToken);
-      } else {
-        this.accessToken = null;
-        localStorage.removeItem("accessToken");
+        if (accessToken) localStorage.setItem('accessToken', accessToken);
+        else localStorage.removeItem('accessToken');
       }
 
-      if (refreshToken) {
+      if (refreshToken !== undefined) {
         this.refreshToken = refreshToken;
-        localStorage.setItem("refreshToken", refreshToken);
-      } else {
-        this.refreshToken = null;
-        localStorage.removeItem("refreshToken");
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+        else localStorage.removeItem('refreshToken');
       }
 
-      if (userId) {
+      if (userId !== undefined) {
         this.userId = userId;
-        localStorage.setItem("userId", userId);
-      } else {
-        this.userId = null;
-        localStorage.removeItem("userId");
+        if (userId) localStorage.setItem('userId', userId);
+        else localStorage.removeItem('userId');
       }
 
-      if (accessTokenExpiresInSeconds != null) {
+      if (accessTokenExpiresInSeconds !== undefined) {
         this.accessTokenExpiresInSeconds = accessTokenExpiresInSeconds;
-        localStorage.setItem("accessTokenExpiresInSeconds", accessTokenExpiresInSeconds);
-      } else {
-        this.accessTokenExpiresInSeconds = null;
-        localStorage.removeItem("accessTokenExpiresInSeconds");
+        if (accessTokenExpiresInSeconds != null) localStorage.setItem('accessTokenExpiresInSeconds', accessTokenExpiresInSeconds);
+        else localStorage.removeItem('accessTokenExpiresInSeconds');
       }
     },
 

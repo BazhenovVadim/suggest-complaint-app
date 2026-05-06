@@ -82,7 +82,8 @@ const handleSubmit = async () => {
     try {
         await userStore.register({ email: email.value, password: password.value });
 
-        router.push("/login");
+        await userStore.login({ email: email.value, password: password.value });
+        router.push("/");
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
