@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
+import ru.it.solutions.suggest.complaint.app.model.mappers.UserMapper;
 import ru.it.solutions.suggest.complaint.app.repository.UserRepository;
 
 import java.time.Instant;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JWTService jwtService;
     private final EmailService emailService;
@@ -31,7 +34,10 @@ public class AuthService {
     private long refreshTokenTtlSeconds;
 
     @Transactional
-    public UUID register(String email, String password, String vkUserId, String tgUserId) {
+    public UUID register(RegisterRequest request, String vkUserId, String tgUserId) {
+        String email = request.email();
+        String password = request.password();
+
         if (!PasswordPolicy.validate(password)) {
             throw new IllegalArgumentException("Пароль не соответствует правилам");
         }
@@ -51,6 +57,7 @@ public class AuthService {
         String hashed = passwordEncoder.encode(password);
         UserEntity user = UserEntity.register(email, hashed);
         applyConfiguredAdminRole(user);
+        userMapper.updateEntity(user, request);
         user.setVkUserId(vkUserId);
         user.setTelegramUserId(tgUserId);
         user.confirm();

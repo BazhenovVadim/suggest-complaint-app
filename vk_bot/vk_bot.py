@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -189,8 +190,7 @@ class Appeal:
     timeframe: Optional[Timeframe] = None
 
     id: Optional[str] = None
-    filePath: Optional[str] = None
-    fileName: Optional[str] = None
+    attachments: Optional[List[str]] = None
     contactName: Optional[str] = None
     contactPhone: Optional[str] = None
     contactEmail: Optional[str] = None
@@ -205,8 +205,7 @@ class Appeal:
             "campusLocation": enum_to_backend(self.campusLocation),
             "problemCategory": enum_to_backend(self.problemCategory),
             "timeframe": enum_to_backend(self.timeframe),
-            "filePath": self.filePath,
-            "fileName": self.fileName,
+            "attachments": self.attachments or [],
             "contactName": self.contactName,
             "contactPhone": self.contactPhone,
             "contactEmail": self.contactEmail,
@@ -345,6 +344,7 @@ class AppealState(BaseStateGroup):
     WAITING_FOR_CATEGORY = 2
     WAITING_FOR_TIMEFRAME = 3
     WAITING_FOR_DESCRIPTION = 4
+    WAITING_FOR_FILES = 5
 
 
 # --- справочники ---
@@ -960,6 +960,49 @@ def unwrap_user_data(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+async def download_and_encode_file(url: str, filename: str) -> Optional[str]:
+    """Скачивает файл по URL и возвращает base64-encoded строку с MIME типом"""
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    log_event(
+                        logging.WARNING,
+                        "file_download_failed",
+                        url=url[:100] + "..." if len(url) > 100 else url,
+                        status=response.status,
+                    )
+                    return None
+
+                content = await response.read()
+                content_type = response.headers.get('Content-Type', 'application/octet-stream')
+
+                # Создаем data URL
+                base64_content = base64.b64encode(content).decode('utf-8')
+                data_url = f"data:{content_type};base64,{base64_content}"
+
+                log_event(
+                    logging.INFO,
+                    "file_downloaded_and_encoded",
+                    filename=filename,
+                    content_type=content_type,
+                    size=len(content),
+                    url=url[:100] + "..." if len(url) > 100 else url,
+                )
+
+                return data_url
+
+    except Exception as e:
+        log_event(
+            logging.ERROR,
+            "file_download_error",
+            url=url[:100] + "..." if len(url) > 100 else url,
+            filename=filename,
+            error=str(e),
+        )
+        return None
+
+
 def get_registration_flag_from_dict(data: Dict[str, Any]) -> Optional[bool]:
     for key in ("exists", "registered", "isRegistered", "success"):
         if key in data:
@@ -1007,9 +1050,9 @@ def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
         return explicit_name
 
     name_parts = [
-        user_data.get("last_name") or user_data.get("lastName"),
-        user_data.get("first_name") or user_data.get("firstName"),
-        user_data.get("middle_name") or user_data.get("middleName"),
+        user_data.get("lastname") or user_data.get("lastName") or user_data.get("last_name"),  # добавлено lastname для UserResponseDto
+        user_data.get("firstname") or user_data.get("firstName") or user_data.get("first_name"),  # добавлено firstname для UserResponseDto
+        user_data.get("middlename") or user_data.get("middleName") or user_data.get("middle_name"),  # добавлено middlename для UserResponseDto
     ]
 
     full_name = " ".join(str(part).strip() for part in name_parts if part)
@@ -1048,7 +1091,7 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
         user_data,
         "contact_email",
         "contactEmail",
-        "email",
+        "email",  # добавлено для UserResponseDto
         "mail",
         "contact",
         "contactLink",
@@ -1299,7 +1342,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
         )
 
 
-async def send_to_backend(appeal: Appeal) -> bool:
+async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
     url = api_url("/appeals")
     body = appeal.to_dict()
 
@@ -1350,13 +1393,25 @@ async def send_to_backend(appeal: Appeal) -> bool:
                 )
 
                 if response.status in (200, 201):
+                    appeal_number = None
+                    try:
+                        payload = json.loads(response_text) if response_text else {}
+                        if isinstance(payload, dict):
+                            appeal_number = payload.get("appealNumber") or payload.get("appeal_number")
+                            if appeal_number is None and isinstance(payload.get("data"), dict):
+                                data_payload = payload.get("data")
+                                appeal_number = data_payload.get("appealNumber") or data_payload.get("appeal_number")
+                    except json.JSONDecodeError:
+                        appeal_number = None
+
                     log_event(
                         logging.INFO,
                         "appeal_send_success",
                         vk_user_id=appeal.vkUserId,
                         status=response.status,
+                        appeal_number=appeal_number,
                     )
-                    return True
+                    return True, appeal_number
 
                 log_event(
                     logging.ERROR,
@@ -1367,7 +1422,7 @@ async def send_to_backend(appeal: Appeal) -> bool:
                     response_body=safe_http_body(response_text, force=LOG_ERROR_HTTP_BODIES),
                 )
 
-                return False
+                return False, None
 
     except (aiohttp.ClientError, asyncio.TimeoutError):
         log_exception(
@@ -1376,10 +1431,10 @@ async def send_to_backend(appeal: Appeal) -> bool:
             url=url,
             request_body=safe_payload(body),
         )
-        return False
+        return False, None
 
 
-async def save_appeal_to_db(appeal: Appeal) -> bool:
+async def save_appeal_to_db(appeal: Appeal) -> Tuple[bool, Optional[int]]:
     log_event(
         logging.INFO,
         "appeal_save_started",
@@ -1387,16 +1442,17 @@ async def save_appeal_to_db(appeal: Appeal) -> bool:
         appeal_type=appeal.type,
     )
 
-    result = await send_to_backend(appeal)
+    result, appeal_number = await send_to_backend(appeal)
 
     log_event(
         logging.INFO if result else logging.ERROR,
         "appeal_save_finished",
         vk_user_id=appeal.vkUserId,
         success=result,
+        appeal_number=appeal_number,
     )
 
-    return result
+    return result, appeal_number
 
 
 async def build_appeal_from_payload(
@@ -1464,6 +1520,7 @@ async def build_appeal_from_payload(
         campusLocation=campusLocation,
         problemCategory=problemCategory,
         timeframe=timeframe,
+        attachments=payload.get("attachments", []),
         contactName=user_fields["contactName"],
         contactPhone=user_fields["contactPhone"],
         contactEmail=user_fields["contactEmail"],
@@ -1611,6 +1668,17 @@ def get_timeframe_kb():
         kb.add(Text(timeframe.value), color=KeyboardButtonColor.PRIMARY if index < 3 else KeyboardButtonColor.SECONDARY)
 
     return add_navigation(kb).get_json()
+
+
+def get_files_kb():
+    log_event(logging.DEBUG, "keyboard_created", keyboard="files")
+
+    return (
+        Keyboard(one_time=False)
+        .add(Text("Пропустить"), color=KeyboardButtonColor.SECONDARY)
+        .add(Text(BACK_BUTTON), color=KeyboardButtonColor.NEGATIVE)
+        .get_json()
+    )
 
 
 # --- регистрация ---
@@ -2105,6 +2173,21 @@ async def back_action(message: Message):
                 keyboard=get_type_kb(),
                 event="back_to_type",
             )
+        return
+
+    if current_state == AppealState.WAITING_FOR_FILES:
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_DESCRIPTION,
+            reason="back_from_files_to_description",
+            **payload,
+        )
+        await send_answer(
+            message,
+            "Опишите обращение подробнее:",
+            keyboard=get_navigation_kb(),
+            event="back_to_description_from_files",
+        )
         return
 
     log_event(
@@ -2658,12 +2741,256 @@ async def description_handler(message: Message):
         )
         return
 
-    saved = await save_appeal_to_db(appeal)
+    await set_state(
+        message,
+        AppealState.WAITING_FOR_FILES,
+        reason="description_received_moving_to_files",
+        **payload,
+    )
+
+    log_event(
+        logging.INFO,
+        "description_handler_moving_to_files",
+        peer_id=message.peer_id,
+        vk_user_id=get_vk_user_id(message),
+    )
+
+    await send_answer(
+        message,
+        "📎 Если у вас есть файлы (JPG, PNG, PDF), которые помогут описать проблему, отправьте их.\n\nИли нажмите 'Пропустить', чтобы отправить обращение без файлов:",
+        keyboard=get_files_kb(),
+        event="files_step_started",
+    )
+
+
+@bot.on.message(state=AppealState.WAITING_FOR_FILES)
+@handle_navigation
+async def files_handler(message: Message):
+    log_handler_entry("files_handler", message)
+
+    text = (message.text or "").strip()
+
+    payload = (message.state_peer.payload or {}).copy()
+
+    if text == "Пропустить":
+        log_event(
+            logging.INFO,
+            "files_handler_skip_files",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        # Переходим к сохранению обращения без файлов
+        await finalize_appeal(message, payload)
+        return
+
+    if text == BACK_BUTTON:
+        log_event(
+            logging.INFO,
+            "files_handler_back_to_description",
+            peer_id=message.peer_id,
+            vk_user_id=get_vk_user_id(message),
+        )
+
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_DESCRIPTION,
+            reason="files_back_to_description",
+            **payload,
+        )
+
+        await send_answer(
+            message,
+            "Опишите обращение подробнее:",
+            keyboard=get_navigation_kb(),
+            event="back_to_description_from_files",
+        )
+        return
+
+    # Обработка вложений
+    attachments = payload.get("attachments", [])
+    new_attachments = []
+
+    message_attachments = getattr(message, "attachments", None) or []
+    if isinstance(message_attachments, dict):
+        message_attachments = [message_attachments]
+
+    def normalize_list(item):
+        return item if isinstance(item, list) else [item] if item is not None else []
+
+    for attachment in normalize_list(message_attachments):
+        att_type = None
+        if isinstance(attachment, dict):
+            att_type = attachment.get("type")
+        else:
+            att_type = getattr(attachment, "type", None)
+
+        if att_type == "photo" or getattr(attachment, "photo", None) is not None:
+            photo = attachment["photo"] if isinstance(attachment, dict) else attachment.photo
+            try:
+                photo_url = None
+                sizes = photo.get("sizes") if isinstance(photo, dict) else getattr(photo, "sizes", None)
+                if sizes:
+                    sorted_sizes = sorted(
+                        sizes,
+                        key=lambda s: ((s.get("width", 0) * s.get("height", 0)) if isinstance(s, dict) else (getattr(s, "width", 0) * getattr(s, "height", 0))),
+                        reverse=True,
+                    )
+                    best = sorted_sizes[0]
+                    photo_url = best.get("url") if isinstance(best, dict) else getattr(best, "url", None)
+
+                if not photo_url:
+                    photo_url = photo.get("url") if isinstance(photo, dict) else getattr(photo, "url", None)
+
+                if photo_url:
+                    base64_data = await download_and_encode_file(
+                        photo_url,
+                        f"photo_{len(attachments) + len(new_attachments) + 1}.jpg",
+                    )
+                    if base64_data:
+                        new_attachments.append(base64_data)
+                        log_event(
+                            logging.INFO,
+                            "files_handler_photo_added",
+                            peer_id=message.peer_id,
+                            vk_user_id=get_vk_user_id(message),
+                            photo_url=photo_url[:100] + "..." if len(photo_url) > 100 else photo_url,
+                        )
+            except Exception as e:
+                log_event(
+                    logging.ERROR,
+                    "files_handler_photo_processing_error",
+                    peer_id=message.peer_id,
+                    vk_user_id=get_vk_user_id(message),
+                    error=str(e),
+                )
+
+        elif att_type == "doc" or getattr(attachment, "doc", None) is not None:
+            doc = attachment["doc"] if isinstance(attachment, dict) else attachment.doc
+            try:
+                if isinstance(doc, dict):
+                    doc_url = doc.get("url")
+                    doc_title = doc.get("title") or doc.get("filename")
+                else:
+                    doc_url = getattr(doc, "url", None)
+                    doc_title = getattr(doc, "title", None) or getattr(doc, "filename", None)
+
+                if doc_url:
+                    base64_data = await download_and_encode_file(
+                        doc_url,
+                        doc_title or f"document_{len(attachments) + len(new_attachments) + 1}",
+                    )
+                    if base64_data:
+                        new_attachments.append(base64_data)
+                        log_event(
+                            logging.INFO,
+                            "files_handler_document_added",
+                            peer_id=message.peer_id,
+                            vk_user_id=get_vk_user_id(message),
+                            doc_title=doc_title,
+                            doc_url=doc_url[:100] + "..." if len(doc_url) > 100 else doc_url,
+                        )
+            except Exception as e:
+                log_event(
+                    logging.ERROR,
+                    "files_handler_document_processing_error",
+                    peer_id=message.peer_id,
+                    vk_user_id=get_vk_user_id(message),
+                    error=str(e),
+                )
+
+    if new_attachments:
+        attachments.extend(new_attachments)
+        payload["attachments"] = attachments
+
+        await set_state(
+            message,
+            AppealState.WAITING_FOR_FILES,
+            reason="files_added_more_allowed",
+            **payload,
+        )
+
+        await send_answer(
+            message,
+            f"✅ Файл{'ы' if len(new_attachments) > 1 else ''} добавлен{'ы' if len(new_attachments) > 1 else ''}! Всего файлов: {len(attachments)}\n\nМожете отправить еще файлы или нажать 'Пропустить' для завершения:",
+            keyboard=get_files_kb(),
+            event="files_added",
+        )
+    else:
+        await send_answer(
+            message,
+            "Не удалось обработать файлы. Попробуйте отправить файлы заново или нажмите 'Пропустить':",
+            keyboard=get_files_kb(),
+            event="files_processing_failed",
+        )
+
+
+async def finalize_appeal(message: Message, payload: Dict[str, Any]):
+    """Финализация и отправка обращения"""
+    vk_user_id = get_vk_user_id(message)
+
+    # Добавляем attachments в payload если их нет
+    if "attachments" not in payload:
+        payload["attachments"] = []
+
+    appeal, registration = await build_appeal_from_payload(payload, vk_user_id)
+
+    if not registration.request_ok:
+        log_event(
+            logging.ERROR,
+            "finalize_appeal_registration_check_error",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+        )
+
+        await send_answer(
+            message,
+            "Возникла ошибка при проверке регистрации. Попробуйте позже.",
+            keyboard=get_navigation_kb(),
+            event="final_registration_check_error",
+        )
+        return
+
+    if not registration.registered:
+        verified_users.discard(vk_user_id)
+
+        log_event(
+            logging.INFO,
+            "finalize_appeal_user_not_registered_on_final_check",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            verified_users_count=len(verified_users),
+        )
+
+        await delete_state(message, reason="final_registration_check_not_registered")
+        await send_registration_required(message)
+        return
+
+    if appeal is None:
+        log_event(
+            logging.ERROR,
+            "finalize_appeal_appeal_none_after_build",
+            peer_id=message.peer_id,
+            vk_user_id=vk_user_id,
+            payload=safe_payload(payload),
+        )
+
+        await delete_state(message, reason="appeal_build_failed")
+        await send_answer(
+            message,
+            "Возникла ошибка при формировании обращения. Попробуйте позже.",
+            keyboard=get_start_kb(),
+            event="appeal_build_error",
+        )
+        return
+
+    saved, appeal_number = await save_appeal_to_db(appeal)
+    appeal_number_text = f"\nНомер заявки: {appeal_number}" if appeal_number is not None else ""
 
     if not saved:
         log_event(
             logging.ERROR,
-            "description_handler_appeal_save_failed",
+            "finalize_appeal_appeal_save_failed",
             peer_id=message.peer_id,
             vk_user_id=vk_user_id,
             payload=safe_payload(payload),
@@ -2671,14 +2998,14 @@ async def description_handler(message: Message):
 
         await set_state(
             message,
-            AppealState.WAITING_FOR_DESCRIPTION,
-            reason="appeal_save_failed_retry_description",
+            AppealState.WAITING_FOR_FILES,
+            reason="appeal_save_failed_retry_files",
             **payload,
         )
         await send_answer(
             message,
             "Возникла ошибка при отправке обращения. Попробуйте позже.",
-            keyboard=get_navigation_kb(),
+            keyboard=get_files_kb(),
             event="appeal_send_error",
         )
         return
@@ -2687,37 +3014,39 @@ async def description_handler(message: Message):
 
     log_event(
         logging.INFO,
-        "description_handler_appeal_flow_finished",
+        "finalize_appeal_appeal_flow_finished",
         peer_id=message.peer_id,
         vk_user_id=vk_user_id,
         appeal_type=appeal.type,
+        attachments_count=len(appeal.attachments or []),
+        appeal_number=appeal_number,
     )
 
     if appeal.type == AppealType.COMPLAINT:
         await send_answer(
             message,
-            "✅ Ваша жалоба успешно зарегистрирована!",
+            f"✅ Ваша жалоба успешно зарегистрирована!{appeal_number_text}",
             keyboard=get_start_kb(),
             event="complaint_saved_success",
         )
     elif appeal.type == AppealType.SUGGESTION:
         await send_answer(
             message,
-            "✅ Ваше предложение успешно зарегистрировано!",
+            f"✅ Ваше предложение успешно зарегистрировано!{appeal_number_text}",
             keyboard=get_start_kb(),
             event="suggestion_saved_success",
         )
     elif appeal.type == AppealType.QUESTION:
         await send_answer(
             message,
-            "✅ Ваш вопрос успешно зарегистрирован!",
+            f"✅ Ваш вопрос успешно зарегистрирован!{appeal_number_text}",
             keyboard=get_start_kb(),
             event="question_saved_success",
         )
     elif appeal.type == AppealType.REQUEST:
         await send_answer(
             message,
-            "✅ Ваш запрос успешно зарегистрирован!",
+            f"✅ Ваш запрос успешно зарегистрирован!{appeal_number_text}",
             keyboard=get_start_kb(),
             event="request_saved_success",
         )

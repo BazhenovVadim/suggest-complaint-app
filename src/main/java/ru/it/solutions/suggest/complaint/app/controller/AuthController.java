@@ -28,9 +28,13 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request,
                                       @RequestParam(required = false) String vkUserId,
-                                      @RequestParam(required = false) String tgUserId) {
+                                      @RequestParam(required = false, name = "tgUserId") String tgUserId) {
         try {
-            UUID userId = authService.register(request.email(), request.password(), vkUserId, tgUserId);
+            String resolvedVkUserId = request.vkUserId() != null ? request.vkUserId() : vkUserId;
+            String resolvedTelegramUserId = request.telegramUserId() != null ? request.telegramUserId() : tgUserId;
+            UUID userId = authService.register(request,
+                    resolvedVkUserId,
+                    resolvedTelegramUserId);
             return ResponseEntity.ok(new RegisterResponse(userId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));

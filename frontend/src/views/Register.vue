@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "../stores/user";
 
 import MdiEye from "~icons/mdi/eye";
@@ -17,12 +17,23 @@ const consent = ref(false);
 const error = ref("");
 const loading = ref(false);
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
+
+const firstname = ref("");
+const lastname = ref("");
+const middlename = ref("");
 
 const isEmailError = ref(false);
 const isEmailShaking = ref(false);
 const isPasswordError = ref(false);
 const isPasswordShaking = ref(false);
+const isFirstnameError = ref(false);
+const isFirstnameShaking = ref(false);
+const isLastnameError = ref(false);
+const isLastnameShaking = ref(false);
+const isMiddlenameError = ref(false);
+const isMiddlenameShaking = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 
@@ -33,6 +44,9 @@ const Icons = {
 
 watch(email, () => { isEmailError.value = false; error.value = ""; });
 watch([password, confirmPassword], () => { isPasswordError.value = false; error.value = ""; });
+watch(firstname, () => { isFirstnameError.value = false; error.value = ""; });
+watch(lastname, () => { isLastnameError.value = false; error.value = ""; });
+watch(middlename, () => { isMiddlenameError.value = false; error.value = ""; });
 
 
 const triggerError = (field, msg) => {
@@ -47,17 +61,57 @@ const triggerError = (field, msg) => {
         isPasswordShaking.value = false;
         setTimeout(() => isPasswordShaking.value = true, 10);
         setTimeout(() => isPasswordShaking.value = false, 600);
+    } else if (field === 'lastname') {
+        isLastnameError.value = true;
+        isLastnameShaking.value = false;
+        setTimeout(() => isLastnameShaking.value = true, 10);
+        setTimeout(() => isLastnameShaking.value = false, 600);
+    } else if (field === 'firstname') {
+        isFirstnameError.value = true;
+        isFirstnameShaking.value = false;
+        setTimeout(() => isFirstnameShaking.value = true, 10);
+        setTimeout(() => isFirstnameShaking.value = false, 600);
+    } else if (field === 'middlename') {
+        isMiddlenameError.value = true;
+        isMiddlenameShaking.value = false;
+        setTimeout(() => isMiddlenameShaking.value = true, 10);
+        setTimeout(() => isMiddlenameShaking.value = false, 600);
     }
 };
 
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validatePassword = (password) => /^(?=.*[0-9])(?=.*[A-Z]).{8,}$/.test(password);
+const validateName = (name) => /^[а-яА-ЯёЁa-zA-Z\s]+$/.test(name);
 
 const handleSubmit = async () => {
 
     if (!consent.value) {
         error.value = "Необходимо согласие на обработку персональных данных";
+        return;
+    }
+
+    if (!lastname.value.trim()) {
+        triggerError('lastname', "Введите фамилию");
+        return;
+    }
+
+    if (!validateName(lastname.value)) {
+        triggerError('lastname', "Фамилия должна содержать только буквы");
+        return;
+    }
+
+    if (!firstname.value.trim()) {
+        triggerError('firstname', "Введите имя");
+        return;
+    }
+
+    if (!validateName(firstname.value)) {
+        triggerError('firstname', "Имя должно содержать только буквы");
+        return;
+    }
+    if (middlename.value && !validateName(middlename.value)) {
+        triggerError('middlename', "Отчество должно содержать только буквы");
         return;
     }
 
@@ -79,8 +133,27 @@ const handleSubmit = async () => {
     loading.value = true;
     error.value = "";
 
+    const registerData = {
+        email: email.value,
+        password: password.value,
+        firstname: firstname.value,
+        lastname: lastname.value,
+        middlename: middlename.value
+    };
+
+    const vkUserId = route.query.vkUserId;
+    const tgUserId = route.query.tgUserId;
+
+    if (vkUserId) {
+        registerData.vk_user_id = vkUserId;
+    }
+
+    if (tgUserId) {
+        registerData.telegram_user_id = tgUserId;
+    }
+
     try {
-        await userStore.register({ email: email.value, password: password.value });
+        await userStore.register(registerData);
 
         await userStore.login({ email: email.value, password: password.value });
         router.push("/");
@@ -98,6 +171,24 @@ const handleSubmit = async () => {
             <img src="../assets/prof.jpg" class="logo" alt="Логотип" />
             <h1>Регистрация</h1>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
+                <div class="field-group">
+                    <h2>Фамилия</h2>
+                    <Input class="lastname" :class="{ 'input-error': isLastnameError, 'shake': isLastnameShaking }"
+                        v-model="lastname" placeholder="Фамилия" required />
+                </div>
+
+                <div class="field-group">
+                    <h2>Имя</h2>
+                    <Input class="firstname" :class="{ 'input-error': isFirstnameError, 'shake': isFirstnameShaking }"
+                        v-model="firstname" placeholder="Имя" required />
+                </div>
+
+                <div class="field-group">
+                    <h2>Отчество <span class="optional">(если есть)</span></h2>
+                    <Input class="middlename" :class="{ 'input-error': isMiddlenameError, 'shake': isMiddlenameShaking }"
+                        v-model="middlename" placeholder="Отчество" />
+                </div>
+
                 <div class="field-group">
                     <h2>Email</h2>
                     <Input class="email" :class="{ 'input-error': isEmailError, 'shake': isEmailShaking }"
@@ -226,7 +317,10 @@ const handleSubmit = async () => {
 
 .email,
 .password,
-.confirm-password {
+.confirm-password,
+.firstname,
+.lastname,
+.middlename {
     width: 100%;
 }
 
@@ -255,6 +349,11 @@ h2 {
     color: var(--color-font);
     font-size: 20px;
     font-weight: bold;
+}
+
+.optional {
+    opacity: 0.7;
+    font-weight: normal;
 }
 
 a {

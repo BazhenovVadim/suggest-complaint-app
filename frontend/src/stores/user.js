@@ -49,8 +49,8 @@ export const useUserStore = defineStore("user", {
       localStorage.removeItem("accessTokenExpiresInSeconds");
     },
 
-    async register({ email, password }) {
-      const response = await api.register({ email, password });
+    async register(registerData) {
+      const response = await api.register(registerData);
       this.saveAuthTokens(response.data);
     },
 
