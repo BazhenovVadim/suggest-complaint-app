@@ -118,8 +118,12 @@ const handleSubmit = async () => {
         const accessToken = localStorage.getItem("accessToken");
         const appealData = {
             type: selectedType.value,
-            campusLocation: selectedLocation.value,
-            problemCategory: selectedCategory.value,
+            campusLocation:
+                selectedType === "COMPLIANT"
+                    ? selectedLocation.value
+                    : "STUDENT_CAMPUS",
+            problemCategory:
+                selectedType === "COMPLIANT" ? selectedCategory.value : "OTHER",
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
             contactName: name.value,
@@ -188,23 +192,28 @@ const handleSubmit = async () => {
                             @select="selectedType = option.value"
                         />
                     </div>
-                    <div class="categories">
-                        <CategorySelect
-                            v-model="selectedLocation"
-                            :categories="locationOptions"
-                            label="Место обращения"
-                        />
-                        <CategorySelect
-                            v-model="selectedCategory"
-                            :categories="categoryOptions"
-                            label="Категория"
-                        />
-                        <CategorySelect
-                            v-model="selectedTimeframe"
-                            :categories="timeframeOptions"
-                            label="Сроки решения (опционально)"
-                        />
-                    </div>
+                    <Transition name="fade">
+                        <div
+                            v-if="selectedType === 'COMPLAINT'"
+                            class="categories"
+                        >
+                            <CategorySelect
+                                v-model="selectedLocation"
+                                :categories="locationOptions"
+                                label="Место обращения"
+                            />
+                            <CategorySelect
+                                v-model="selectedCategory"
+                                :categories="categoryOptions"
+                                label="Категория"
+                            />
+                            <CategorySelect
+                                v-model="selectedTimeframe"
+                                :categories="timeframeOptions"
+                                label="Сроки решения (опционально)"
+                            />
+                        </div>
+                    </Transition>
                 </div>
                 <div class="problem-description">
                     <h2>Описание проблемы</h2>
@@ -310,6 +319,17 @@ const handleSubmit = async () => {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: all 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: translateY(-15px);
 }
 
 .problem-description {
