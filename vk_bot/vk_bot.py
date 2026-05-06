@@ -273,7 +273,7 @@ def build_api_base_url() -> str:
 
 
 API_BASE_URL = build_api_base_url()
-SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:8080").rstrip("/")
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:5173").rstrip("/")
 REGISTRATION_PATH = os.getenv("REGISTRATION_PATH", "/register")
 
 APPEAL_ENUM_FORMAT = os.getenv("APPEAL_ENUM_FORMAT", "name").strip().lower()
