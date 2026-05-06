@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import axios from "axios";
 
 import Option from "../components/Option.vue";
@@ -62,42 +62,55 @@ const selectedType = ref("COMPLAINT");
 const selectedLocation = ref(null);
 const selectedCategory = ref(null);
 const selectedTimeframe = ref(null);
+const errorMessage = ref("");
 const message = ref("");
 const attachments = ref([]);
 const name = ref("");
 const phone = ref("");
 const email = ref("");
-const anonymous = ref(false);
 const consent = ref(false);
+
+watch(selectedLocation, () => {
+    errorMessage.value = "";
+});
+
+watch(selectedCategory, () => {
+    errorMessage.value = "";
+});
+
+watch(message, () => {
+    errorMessage.value = "";
+});
+
+watch(consent, () => {
+    errorMessage.value = "";
+});
 
 const handleSubmit = async () => {
     if (!isAuthenticated.value) {
-        alert("Необходимо войти в систему для отправки обращения");
+        errorMessage.value =
+            "Необходимо войти в систему для отправки обращения";
         return;
     }
 
     if (!selectedLocation.value) {
-        alert("Выберите место обращения");
+        errorMessage.value = "Выберите место обращения";
         return;
     }
 
     if (!selectedCategory.value) {
-        alert("Выберите категорию проблемы");
+        errorMessage.value = "Выберите категорию проблемы";
         return;
     }
 
     if (!message.value.trim()) {
-        alert("Опишите вашу проблему");
+        errorMessage.value = "Опишите вашу проблему";
         return;
     }
 
     if (!consent.value) {
-        alert("Необходимо согласие на обработку персональных данных");
-        return;
-    }
-
-    if (!anonymous.value && (!name.value.trim() || !email.value.trim())) {
-        alert("Заполните контактные данные или включите анонимную отправку");
+        errorMessage.value =
+            "Необходимо согласие на обработку персональных данных";
         return;
     }
 
@@ -109,9 +122,9 @@ const handleSubmit = async () => {
             problemCategory: selectedCategory.value,
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
-            contactName: anonymous.value ? null : name.value,
-            contactPhone: anonymous.value ? null : phone.value,
-            contactEmail: anonymous.value ? null : email.value,
+            contactName: name.value,
+            contactPhone: phone.value,
+            contactEmail: email.value,
             personalDataConsent: consent.value,
         };
 
@@ -136,14 +149,13 @@ const handleSubmit = async () => {
         name.value = "";
         phone.value = "";
         email.value = "";
-        anonymous.value = false;
         consent.value = false;
     } catch (error) {
-        const errorMessage =
+        errorMessage.value =
             error.response?.data?.message ||
             error.message ||
             "Ошибка при отправке обращения";
-        alert(`Ошибка: ${errorMessage}`);
+        errorMessage.value = `Ошибка: ${errorMessage}`;
         console.error("Ошибка при отправке обращения:", error);
     }
 };
@@ -215,26 +227,12 @@ const handleSubmit = async () => {
                         Контакты для ответа
                         <span style="color: #999999">(необязательно)</span>
                     </h2>
-                    <Toggle v-model="anonymous" label="Отправить анонимно" />
                 </div>
 
                 <div class="inputs">
-                    <Input
-                        class="name"
-                        v-model="name"
-                        placeholder="Ваше имя"
-                        :disabled="anonymous"
-                    />
-                    <Input
-                        v-model="phone"
-                        placeholder="Телефон"
-                        :disabled="anonymous"
-                    />
-                    <Input
-                        v-model="email"
-                        placeholder="E-mail"
-                        :disabled="anonymous"
-                    />
+                    <Input class="name" v-model="name" placeholder="Ваше имя" />
+                    <Input v-model="phone" placeholder="Телефон" />
+                    <Input v-model="email" placeholder="E-mail" />
                 </div>
             </div>
             <div class="submit">
@@ -244,6 +242,7 @@ const handleSubmit = async () => {
                 />
                 <Button @click="handleSubmit">Отправить обращение</Button>
             </div>
+            <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
         <footer>Ну футер там и т.д.</footer>
     </main>
@@ -342,6 +341,13 @@ const handleSubmit = async () => {
 
 .consent {
     margin-bottom: 20px;
+}
+
+.error-msg {
+    color: #d32f2f;
+    font-weight: bold;
+    text-align: center;
+    margin: 0;
 }
 
 h1 {

@@ -5,10 +5,6 @@ defineProps({
     type: String,
     default: 'Введите текст...'
   },
-  disabled: {
-    type: Boolean,
-    default: false
-  }
 })
 </script>
 
@@ -17,7 +13,6 @@ defineProps({
         class="input"
         v-model="model"
         :placeholder="placeholder"
-        :disabled="disabled"
     ></input>
 </template>
 
