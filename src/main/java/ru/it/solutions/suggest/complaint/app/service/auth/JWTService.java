@@ -3,13 +3,14 @@ package ru.it.solutions.suggest.complaint.app.service.auth;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
 import java.time.Instant;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
@@ -17,10 +18,15 @@ import java.util.UUID;
 @Service
 public class JWTService {
 
-    private final Key key;
+    private static final int REFRESH_TOKEN_BYTES = 64;
 
-    public JWTService(Environment env) {
-        String secret = env.getProperty("JWT_SECRET", "defaultsecretforsample");
+    private final Key key;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${app.jwt.access-token-ttl-seconds:900}")
+    private long accessTokenTtlSeconds;
+
+    public JWTService(@Value("${JWT_SECRET:defaultsecretforsample}") String secret) {
         byte[] bytes = Base64.getEncoder().encode(secret.getBytes());
         this.key = new SecretKeySpec(bytes, SignatureAlgorithm.HS256.getJcaName());
     }
@@ -32,13 +38,19 @@ public class JWTService {
                 .setSubject(userId.toString())
                 .claim("email", email)
                 .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plusSeconds(60 * 15)))
+                .setExpiration(Date.from(now.plusSeconds(accessTokenTtlSeconds)))
                 .signWith(key)
                 .compact();
     }
 
     public String generateRefreshToken() {
-        return UUID.randomUUID().toString();
+        byte[] randomBytes = new byte[REFRESH_TOKEN_BYTES];
+        secureRandom.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    public long getAccessTokenTtlSeconds() {
+        return accessTokenTtlSeconds;
     }
 
     public String extractEmail(String token) {

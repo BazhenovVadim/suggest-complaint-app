@@ -27,6 +27,9 @@ public class AuthService {
     @Value("${app.admin.emails:}")
     private String adminEmails;
 
+    @Value("${app.jwt.refresh-token-ttl-seconds:2592000}")
+    private long refreshTokenTtlSeconds;
+
     @Transactional
     public UUID register(String email, String password, String vkUserId, String tgUserId) {
         if (!PasswordPolicy.validate(password)) {
@@ -64,13 +67,7 @@ public class AuthService {
             throw new IllegalArgumentException("Неверные данные для входа");
         }
         applyConfiguredAdminRole(user);
-        String access = jwtService.generateAccessToken(user.getId(), user.getEmail());
-        String refresh = jwtService.generateRefreshToken();
-        // store hashed refresh token
-        String refreshHash = passwordEncoder.encode(refresh);
-        user.setRefreshToken(refreshHash, Instant.now().plusSeconds(60 * 60 * 24 * 30)); // 30 days
-        userRepository.save(user);
-        return new AuthResult(access, refresh, user.getId());
+        return issueTokens(user, Instant.now());
     }
 
     @Transactional
@@ -111,11 +108,57 @@ public class AuthService {
         user.setPassword(newHash);
         userRepository.save(user);
         // auto-login after reset
+        return issueTokens(user, now);
+    }
+
+    @Transactional
+    public AuthResult refreshTokens(UUID userId, String refreshToken) {
+        if (userId == null || refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh-токен не передан");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Недействительный refresh-токен"));
+        Instant now = Instant.now();
+        if (!isRefreshTokenValid(user, refreshToken, now)) {
+            user.clearRefreshToken();
+            userRepository.save(user);
+            throw new IllegalArgumentException("Недействительный или просроченный refresh-токен");
+        }
+
+        applyConfiguredAdminRole(user);
+        return issueTokens(user, now);
+    }
+
+    @Transactional
+    public void logout(UUID userId, String refreshToken) {
+        if (userId == null) {
+            return;
+        }
+
+        userRepository.findById(userId).ifPresent(user -> {
+            if (refreshToken == null
+                    || refreshToken.isBlank()
+                    || isRefreshTokenValid(user, refreshToken, Instant.now())) {
+                user.clearRefreshToken();
+                userRepository.save(user);
+            }
+        });
+    }
+
+    private AuthResult issueTokens(UserEntity user, Instant now) {
         String access = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String refresh = jwtService.generateRefreshToken();
-        user.setRefreshToken(passwordEncoder.encode(refresh), now.plusSeconds(60 * 60 * 24 * 30));
+        user.setRefreshToken(passwordEncoder.encode(refresh), now.plusSeconds(refreshTokenTtlSeconds));
         userRepository.save(user);
-        return new AuthResult(access, refresh, user.getId());
+        return new AuthResult(access, refresh, user.getId(), jwtService.getAccessTokenTtlSeconds());
+    }
+
+    private boolean isRefreshTokenValid(UserEntity user, String refreshToken, Instant now) {
+        return user.getRefreshTokenHash() != null
+                && user.getRefreshTokenExpiry() != null
+                && !now.isAfter(user.getRefreshTokenExpiry())
+                && passwordEncoder.matches(refreshToken, user.getRefreshTokenHash());
     }
 
     private void applyConfiguredAdminRole(UserEntity user) {
@@ -148,11 +191,13 @@ public class AuthService {
         public final String accessToken;
         public final String refreshToken;
         public final UUID userId;
+        public final long accessTokenExpiresInSeconds;
 
-        public AuthResult(String access, String refresh, UUID userId) {
+        public AuthResult(String access, String refresh, UUID userId, long accessTokenExpiresInSeconds) {
             this.accessToken = access;
             this.refreshToken = refresh;
             this.userId = userId;
+            this.accessTokenExpiresInSeconds = accessTokenExpiresInSeconds;
         }
     }
 }

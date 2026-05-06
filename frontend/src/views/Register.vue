@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import { API_BASE_URL } from "../api";
 import MdiEye from "~icons/mdi/eye";
 import MdiEyeOff from "~icons/mdi/eye-off";
 
@@ -79,7 +80,7 @@ const handleSubmit = async () => {
 
     try {
         const response = await axios.post(
-            "http://localhost:8080/api/auth/register",
+            `${API_BASE_URL}/api/auth/register`,
             {
                 email: email.value,
                 password: password.value,
