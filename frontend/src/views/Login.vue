@@ -2,6 +2,8 @@
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import MdiEye from "~icons/mdi/eye";
+import MdiEyeOff from "~icons/mdi/eye-off";
 
 import Input from "../components/Input.vue";
 import Button from "../components/Button.vue";
@@ -16,6 +18,12 @@ const isEmailError = ref(false);
 const isEmailShaking = ref(false);
 const isPasswordError = ref(false);
 const isPasswordShaking = ref(false);
+const showPassword = ref(false);
+
+const Icons = {
+    eye: MdiEye,
+    eyeOff: MdiEyeOff,
+};
 
 watch(email, () => {
     isEmailError.value = false;
@@ -108,14 +116,24 @@ const handleSubmit = async () => {
                 </div>
                 <div class="field-group">
                     <h2>Пароль</h2>
-                    <Input
-                        class="password"
-                        :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
-                        v-model="password"
-                        type="password"
-                        placeholder="Пароль"
-                        required
-                    />
+                    <div class="input-wrapper">
+                        <Input
+                            class="password"
+                            :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
+                            :type="showPassword ? 'text' : 'password'"
+                            v-model="password"
+                            placeholder="Пароль"
+                            required
+                        />
+                        <button 
+                            type="button" 
+                            class="toggle-password-btn"
+                            @click="showPassword = !showPassword"
+                            :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
+                        >
+                            <component :is="showPassword ? Icons.eye : Icons.eyeOff" />
+                        </button>
+                    </div>
                 </div>
                 <Button type="submit" :disabled="loading">Войти</Button>
             </form>
@@ -170,9 +188,43 @@ const handleSubmit = async () => {
     margin: 0;
 }
 
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    color: var(--color-font);
+}
+
+.toggle-password-btn :deep(svg) {
+    width: 24px;
+    height: 24px;
+}
+
+.toggle-password-btn:hover {
+    opacity: 1;
+}
+
 .email,
 .password {
     width: 100%;
+}
+
+.input-wrapper :deep(input) {
+    padding-right: 40px;
 }
 
 .toggle-login {

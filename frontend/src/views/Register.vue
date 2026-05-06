@@ -2,6 +2,8 @@
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import MdiEye from "~icons/mdi/eye";
+import MdiEyeOff from "~icons/mdi/eye-off";
 
 import Input from "../components/Input.vue";
 import Button from "../components/Button.vue";
@@ -19,6 +21,13 @@ const isEmailError = ref(false);
 const isEmailShaking = ref(false);
 const isPasswordError = ref(false);
 const isPasswordShaking = ref(false);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+
+const Icons = {
+    eye: MdiEye,
+    eyeOff: MdiEyeOff,
+};
 
 watch(email, () => { isEmailError.value = false; error.value = ""; });
 watch([password, confirmPassword], () => { isPasswordError.value = false; error.value = ""; });
@@ -41,7 +50,7 @@ const triggerError = (field, msg) => {
 
 
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(password);
+const validatePassword = (password) => /^(?=.*[0-9])(?=.*[A-Z]).{8,}$/.test(password);
 
 const handleSubmit = async () => {
    
@@ -106,28 +115,48 @@ const handleSubmit = async () => {
                 
                 <div class="field-group">
                     <h2>Пароль</h2>
-                    <Input
-                        class="password"
-                        :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
-                        v-model="password"
-                        type="password"
-                        placeholder="Пароль"
-                        required
-                    />
+                    <div class="input-wrapper">
+                        <Input
+                            class="password"
+                            :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
+                            :type="showPassword ? 'text' : 'password'"
+                            v-model="password"
+                            placeholder="Пароль"
+                            required
+                        />
+                        <button 
+                            type="button" 
+                            class="toggle-password-btn"
+                            @click="showPassword = !showPassword"
+                            :title="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
+                        >
+                            <component :is="showPassword ? Icons.eye : Icons.eyeOff" />
+                        </button>
+                    </div>
                 </div>
                 
-                <p class="password-hint">Пароль должен содержать строчные и заглавные буквы a-z, цифры 0-9</p>
+                <p class="password-hint">Пароль должен содержать заглавные буквы (A-Z), цифры (0-9) и содержать минимум 8 символов.</p>
                 
                 <div class="field-group">
                     <h2>Подтверждение пароля</h2>
-                    <Input
-                        class="confirm-password"
-                        :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
-                        v-model="confirmPassword"
-                        type="password"
-                        placeholder="Подтвердите пароль"
-                        required
-                    />
+                    <div class="input-wrapper">
+                        <Input
+                            class="confirm-password"
+                            :class="{ 'input-error': isPasswordError, 'shake': isPasswordShaking }"
+                            :type="showConfirmPassword ? 'text' : 'password'"
+                            v-model="confirmPassword"
+                            placeholder="Подтвердите пароль"
+                            required
+                        />
+                        <button 
+                            type="button" 
+                            class="toggle-password-btn"
+                            @click="showConfirmPassword = !showConfirmPassword"
+                            :title="showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'"
+                        >
+                            <component :is="showConfirmPassword ? Icons.eye : Icons.eyeOff" />
+                        </button>
+                    </div>
                 </div>
                 
                 <Checkbox
@@ -195,10 +224,44 @@ const handleSubmit = async () => {
     margin: 0;
 }
 
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    color: var(--color-font);
+}
+
+.toggle-password-btn :deep(svg) {
+    width: 24px;
+    height: 24px;
+}
+
+.toggle-password-btn:hover {
+    opacity: 1;
+}
+
 .email,
 .password,
 .confirm-password {
     width: 100%;
+}
+
+.input-wrapper :deep(input) {
+    padding-right: 40px;
 }
 
 .password-hint {
