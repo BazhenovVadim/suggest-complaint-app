@@ -2,13 +2,16 @@ package ru.it.solutions.suggest.complaint.app.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
+import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
 import ru.it.solutions.suggest.complaint.app.repository.UserRepository;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +24,8 @@ public class AuthService {
     private final JWTService jwtService;
     private final EmailService emailService;
 
+    @Value("${app.admin.emails:}")
+    private String adminEmails;
 
     @Transactional
     public UUID register(String email, String password, String vkUserId, String tgUserId) {
@@ -42,6 +47,7 @@ public class AuthService {
         }
         String hashed = passwordEncoder.encode(password);
         UserEntity user = UserEntity.register(email, hashed);
+        applyConfiguredAdminRole(user);
         user.setVkUserId(vkUserId);
         user.setTelegramUserId(tgUserId);
         user.confirm();
@@ -49,7 +55,7 @@ public class AuthService {
         return user.getId();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResult authenticate(String email, String password) {
         Optional<UserEntity> ou = userRepository.findByEmail(email.toLowerCase());
         if (ou.isEmpty()) throw new IllegalArgumentException("Неверные данные для входа");
@@ -57,6 +63,7 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new IllegalArgumentException("Неверные данные для входа");
         }
+        applyConfiguredAdminRole(user);
         String access = jwtService.generateAccessToken(user.getId(), user.getEmail());
         String refresh = jwtService.generateRefreshToken();
         // store hashed refresh token
@@ -109,6 +116,26 @@ public class AuthService {
         user.setRefreshToken(passwordEncoder.encode(refresh), now.plusSeconds(60 * 60 * 24 * 30));
         userRepository.save(user);
         return new AuthResult(access, refresh, user.getId());
+    }
+
+    private void applyConfiguredAdminRole(UserEntity user) {
+        if (isConfiguredAdmin(user.getEmail())) {
+            user.setRole(UserRole.ADMIN);
+        }
+    }
+
+    private boolean isConfiguredAdmin(String email) {
+        if (adminEmails == null || adminEmails.isBlank() || email == null) {
+            return false;
+        }
+
+        String normalizedEmail = email.toLowerCase(Locale.ROOT);
+        for (String adminEmail : adminEmails.split(",")) {
+            if (normalizedEmail.equals(adminEmail.toLowerCase(Locale.ROOT).trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private UserEntity findByEmail(String email) {

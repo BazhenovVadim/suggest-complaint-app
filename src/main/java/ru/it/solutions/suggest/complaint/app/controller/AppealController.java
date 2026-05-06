@@ -1,7 +1,5 @@
 package ru.it.solutions.suggest.complaint.app.controller;
 
-
-import jakarta.persistence.Id;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealStatusUpdateDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
 import ru.it.solutions.suggest.complaint.app.service.AppealService;
 import ru.it.solutions.suggest.complaint.app.service.auth.CustomUserDetails;
@@ -40,33 +39,33 @@ public class AppealController {
 
     @GetMapping
     public ResponseEntity<List<AppealResponseDto>> getAll(@AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ResponseEntity.ok(appealService.getAllAppeals());
+        return ResponseEntity.ok(appealService.getAvailableAppeals(currentUser.getUserEntity()));
     }
-
-
-    public ResponseEntity<List<AppealResponseDto>> getAllByUserId(@AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ResponseEntity.ok(appealService.getAllAppealsByUserId(currentUser.getId()));
-    }
-
-
 
     @GetMapping("/{id}")
     public ResponseEntity<AppealResponseDto> getById(@AuthenticationPrincipal CustomUserDetails currentUser,
                                                      @PathVariable UUID id) {
-        return ResponseEntity.ok(appealService.getAppealById(id));
+        return ResponseEntity.ok(appealService.getAppealById(id, currentUser.getUserEntity()));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<AppealResponseDto> patch(@AuthenticationPrincipal CustomUserDetails currentUser,
                                                    @PathVariable UUID id,
                                                    @Valid @RequestBody AppealUpdateDto updateDto) {
-        return ResponseEntity.ok(appealService.patchAppeal(id, updateDto,currentUser.getUserEntity().getId()));
+        return ResponseEntity.ok(appealService.patchAppeal(id, updateDto, currentUser.getUserEntity()));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AppealResponseDto> updateStatus(@AuthenticationPrincipal CustomUserDetails currentUser,
+                                                          @PathVariable UUID id,
+                                                          @Valid @RequestBody AppealStatusUpdateDto updateDto) {
+        return ResponseEntity.ok(appealService.updateAppealStatus(id, updateDto.getStatus(), currentUser.getUserEntity()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal CustomUserDetails currentUser,
                                        @PathVariable UUID id) {
-        appealService.deleteAppeal(id, currentUser.getUserEntity().getId());
+        appealService.deleteAppeal(id, currentUser.getUserEntity());
         return ResponseEntity.noContent().build();
     }
 }

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
+import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
 
 @Getter
 @Setter
@@ -21,4 +22,5 @@ public class UserResponseDto {
     private String lastname;
     private String vkUserId;
     private String telegramUserId;
+    private UserRole role;
 }
