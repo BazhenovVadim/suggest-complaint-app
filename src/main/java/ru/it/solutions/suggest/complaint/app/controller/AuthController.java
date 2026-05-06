@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ErrorResponse;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.LoginResponse;
+import ru.it.solutions.suggest.complaint.app.model.dto.auth.LogoutRequest;
+import ru.it.solutions.suggest.complaint.app.model.dto.auth.RefreshTokenRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterResponse;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ResetConfirmRequest;
@@ -39,11 +41,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody RegisterRequest request) {
         try {
             AuthService.AuthResult result = authService.authenticate(request.email(), request.password());
-            return ResponseEntity.ok(new LoginResponse(
-                    result.accessToken,
-                    result.refreshToken,
-                    result.userId
-            ));
+            return ResponseEntity.ok(toLoginResponse(result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(new ErrorResponse(e.getMessage()));
         }
@@ -63,14 +61,35 @@ public class AuthController {
                     request.token(),
                     request.newPassword()
             );
-            return ResponseEntity.ok(new LoginResponse(
-                    result.accessToken,
-                    result.refreshToken,
-                    result.userId
-            ));
+            return ResponseEntity.ok(toLoginResponse(result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
+        try {
+            AuthService.AuthResult result = authService.refreshTokens(request.userId(), request.refreshToken());
+            return ResponseEntity.ok(toLoginResponse(result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(401).body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody LogoutRequest request) {
+        authService.logout(request.userId(), request.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    private LoginResponse toLoginResponse(AuthService.AuthResult result) {
+        return new LoginResponse(
+                result.accessToken,
+                result.refreshToken,
+                result.userId,
+                result.accessTokenExpiresInSeconds
+        );
     }
 
 }

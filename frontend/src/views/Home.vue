@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import axios from "axios";
+import { api } from "../api";
 
 import Option from "../components/Option.vue";
 import CategorySelect from "../components/CategorySelect.vue";
@@ -115,7 +116,6 @@ const handleSubmit = async () => {
     }
 
     try {
-        const accessToken = localStorage.getItem("accessToken");
         const appealData = {
             type: selectedType.value,
             campusLocation:
@@ -132,12 +132,11 @@ const handleSubmit = async () => {
             personalDataConsent: consent.value,
         };
 
-        const response = await axios.post(
-            "http://localhost:8080/api/appeals",
+        await api.post(
+            "/api/appeals",
             appealData,
             {
                 headers: {
-                    Authorization: `Bearer ${accessToken}`,
                     "Content-Type": "application/json",
                 },
             },

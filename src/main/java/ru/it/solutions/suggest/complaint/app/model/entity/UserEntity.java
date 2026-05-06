@@ -105,10 +105,9 @@ public class UserEntity {
         this.refreshTokenExpiry = expiry;
     }
 
-    public boolean verifyRefreshToken(String tokenHash, Instant now) {
-        if (refreshTokenHash == null || refreshTokenExpiry == null) return false;
-        if (now.isAfter(refreshTokenExpiry)) return false;
-        return refreshTokenHash.equals(tokenHash);
+    public void clearRefreshToken() {
+        this.refreshTokenHash = null;
+        this.refreshTokenExpiry = null;
     }
 
     public void confirm() {

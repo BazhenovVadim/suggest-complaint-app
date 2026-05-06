@@ -28,31 +28,31 @@ services:
       - "5173:5173"
     restart: unless-stopped
 
-  vk-bot:
-    build:
-      context: ./vk_bot
-      dockerfile: Dockerfile
-    container_name: suggest-complaint-vk-bot
-    depends_on:
-      - app
-    environment:
-      VK_TOKEN: ${VK_TOKEN}
-      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
-      BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
-    restart: unless-stopped
+  # vk-bot:
+  #   build:
+  #     context: ./vk_bot
+  #     dockerfile: Dockerfile
+  #   container_name: suggest-complaint-vk-bot
+  #   depends_on:
+  #     - app
+  #   environment:
+  #     VK_TOKEN: ${VK_TOKEN}
+  #     BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+  #     BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
+  #   restart: unless-stopped
 
-#  tg-bot:
-#    build:
-#      context: ./tg_bot
-#      dockerfile: Dockerfile
-#    container_name: suggest-complaint-tg-bot
-#    depends_on:
-#      - app
-#    environment:
-#      TG_TOKEN: ${TG_TOKEN}
-#      BACKEND_BASE_URL: http://app:8080
-#      BACKEND_API_PREFIX: /api
-#    restart: unless-stopped
+  #  tg-bot:
+  #    build:
+  #      context: ./tg_bot
+  #      dockerfile: Dockerfile
+  #    container_name: suggest-complaint-tg-bot
+  #    depends_on:
+  #      - app
+  #    environment:
+  #      TG_TOKEN: ${TG_TOKEN}
+  #      BACKEND_BASE_URL: http://app:8080
+  #      BACKEND_API_PREFIX: /api
+  #    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
