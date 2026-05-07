@@ -95,5 +95,4 @@ export const useUserStore = defineStore("user", {
     this.profile = await response.json();
     localStorage.setItem('profile', JSON.stringify(this.profile));
   },
-},
 });
