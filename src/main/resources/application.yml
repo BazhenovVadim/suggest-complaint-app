@@ -20,6 +20,13 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/master.xml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
 server:
   port: ${SERVER_PORT:8080}
@@ -33,3 +40,6 @@ app:
   jwt:
     access-token-ttl-seconds: ${APP_JWT_ACCESS_TOKEN_TTL_SECONDS:900}
     refresh-token-ttl-seconds: ${APP_JWT_REFRESH_TOKEN_TTL_SECONDS:2592000}
+  kafka:
+    topics:
+      appeal-status-changed: ${KAFKA_TOPIC_APPEAL_STATUS_CHANGED:appeal.status.changed}

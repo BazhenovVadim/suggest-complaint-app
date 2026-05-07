@@ -7,6 +7,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
 import ru.it.solutions.suggest.complaint.app.model.mappers.UserMapper;
@@ -34,7 +35,7 @@ public class AuthService {
     private long refreshTokenTtlSeconds;
 
     @Transactional
-    public UUID register(RegisterRequest request, String vkUserId, String tgUserId) {
+    public UserResponseDto register(RegisterRequest request, String vkUserId, String tgUserId) {
         String email = request.email();
         String password = request.password();
 
@@ -62,7 +63,7 @@ public class AuthService {
         user.setTelegramUserId(tgUserId);
         user.confirm();
         userRepository.save(user);
-        return user.getId();
+        return userMapper.toResponseDto(user);
     }
 
     @Transactional

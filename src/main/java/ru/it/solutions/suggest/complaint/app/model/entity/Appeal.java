@@ -52,10 +52,6 @@ public class Appeal {
     @Builder.Default
     private List<String> attachments = new ArrayList<>();
 
-    private String contactName;
-    private String contactPhone;
-    private String contactEmail;
-
     @Column(nullable = false)
     private Boolean personalDataConsent;
 

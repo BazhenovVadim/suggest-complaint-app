@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealCreateDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.appeal.AppealUpdateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.event.AppealStatusChangedEvent;
 import ru.it.solutions.suggest.complaint.app.model.entity.Appeal;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 import ru.it.solutions.suggest.complaint.app.model.enums.AppealStatus;
@@ -16,6 +17,7 @@ import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
 import ru.it.solutions.suggest.complaint.app.model.mappers.AppealMapper;
 import ru.it.solutions.suggest.complaint.app.repository.AppealRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,6 +30,7 @@ public class AppealService {
     private final AppealRepository appealRepository;
     private final AppealMapper appealMapper;
     private final UserService userService;
+    private final AppealEventPublisher appealEventPublisher;
 
     @Transactional
     public AppealResponseDto createAppeal(AppealCreateDto createDto, UserEntity user) {
@@ -87,12 +90,11 @@ public class AppealService {
 
         Appeal appeal = getAppealEntityById(id);
         checkAppealAccess(appeal, currentUser);
-
         appealMapper.updateEntity(appeal, updateDto);
 
         Appeal updatedAppeal = appealRepository.save(appeal);
 
-        log.info("Обращение {} обновлено пользователем {}", id, currentUser.getId());
+
         return appealMapper.toResponseDto(updatedAppeal);
     }
 
@@ -105,9 +107,21 @@ public class AppealService {
         }
 
         Appeal appeal = getAppealEntityById(id);
+        AppealStatus oldStatus = appeal.getStatus();
         appeal.setStatus(status);
-
         Appeal updatedAppeal = appealRepository.save(appeal);
+        if (oldStatus != status) {
+            appealEventPublisher.publishAppealStatusChanged(AppealStatusChangedEvent.builder()
+                    .appealId(updatedAppeal.getId())
+                    .appealNumber(updatedAppeal.getAppealNumber())
+                    .userId(updatedAppeal.getUser() != null ? updatedAppeal.getUser().getId() : null)
+                    .vkUserId(updatedAppeal.getUser() != null ? updatedAppeal.getUser().getVkUserId() : null)
+                    .oldStatus(oldStatus != null ? oldStatus.name() : null)
+                    .newStatus(status != null ? status.name() : null)
+                    .changedAt(Instant.now())
+                    .build());
+        }
+        log.info("Обращение {} обновлено пользователем {}", id, currentUser.getId());
         return appealMapper.toResponseDto(updatedAppeal);
     }
 

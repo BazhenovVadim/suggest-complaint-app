@@ -8,16 +8,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ErrorResponse;
+import ru.it.solutions.suggest.complaint.app.model.dto.auth.LoginRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.LoginResponse;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.LogoutRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RefreshTokenRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterRequest;
-import ru.it.solutions.suggest.complaint.app.model.dto.auth.RegisterResponse;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ResetConfirmRequest;
 import ru.it.solutions.suggest.complaint.app.model.dto.auth.ResetRequest;
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.service.auth.AuthService;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("api/auth")
@@ -32,17 +31,17 @@ public class AuthController {
         try {
             String resolvedVkUserId = request.vkUserId() != null ? request.vkUserId() : vkUserId;
             String resolvedTelegramUserId = request.telegramUserId() != null ? request.telegramUserId() : tgUserId;
-            UUID userId = authService.register(request,
+            UserResponseDto user = authService.register(request,
                     resolvedVkUserId,
                     resolvedTelegramUserId);
-            return ResponseEntity.ok(new RegisterResponse(userId));
+            return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             AuthService.AuthResult result = authService.authenticate(request.email(), request.password());
             return ResponseEntity.ok(toLoginResponse(result));

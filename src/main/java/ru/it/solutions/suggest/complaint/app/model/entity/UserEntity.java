@@ -39,6 +39,7 @@ public class UserEntity {
     private Instant resetTokenExpiry;
     private Instant lastResetRequestedAt;
     private String refreshTokenHash;
+    private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

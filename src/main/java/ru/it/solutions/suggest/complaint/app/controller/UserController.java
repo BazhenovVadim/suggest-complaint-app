@@ -48,4 +48,9 @@ public class UserController {
                                                       @Valid @RequestBody UserRoleUpdateDto request) {
         return ResponseEntity.ok(userService.updateRole(id, request.getRole(), currentUser.getUserEntity()));
     }
+
+    @GetMapping("/{id}")
+    public UserResponseDto getUserInfo(@PathVariable("id") UUID userId) {
+        return userService.findUserId(userId);
+    }
 }

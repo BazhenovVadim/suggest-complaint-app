@@ -14,6 +14,7 @@ public record RegisterRequest(
         String telegramUserId,
         String firstname,
         String middlename,
-        String lastname
+        String lastname,
+        String phoneNumber
 ) {
 }
