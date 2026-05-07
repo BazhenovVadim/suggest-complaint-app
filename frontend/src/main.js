@@ -1,6 +1,8 @@
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { createPinia } from "pinia";
+import { useUserStore } from "./stores/user";
+
 import "./style.css";
 import App from "./App.vue";
 import Home from "./views/Home.vue";
@@ -10,11 +12,11 @@ import Profile from "./views/Profile.vue";
 import AdminProfile from "./views/AdminProfile.vue";
 
 const routes = [
-  { path: "/", component: Home },
-  { path: "/login", component: Login },
-  { path: "/register", component: Register },
-  { path: "/profile", component: Profile }, // in develop
-  { path: "/admin-profile", component: AdminProfile }, // in develop
+  { path: "/", component: Home, meta: { requiresAuth: false } },
+  { path: "/login", component: Login, meta: { requiresAuth: false } },
+  { path: "/register", component: Register, meta: { requiresAuth: false } },
+  { path: "/profile", component: Profile, meta: { requiresAuth: true } },
+  { path: "/admin-profile", component: AdminProfile, meta: { requiresAuth: true, requiresAdmin: true } },
 ];
 
 const router = createRouter({
@@ -22,7 +24,29 @@ const router = createRouter({
   routes,
 });
 
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore();
+
+  if (to.meta.requiresAuth && !userStore.accessToken) {
+    next("/login");
+  } else if (to.meta.requiresAdmin && userStore.userRole !== "admin") {
+    next("/profile");
+  } else {
+    next();
+  }
+});
+
+const pinia = createPinia();
 const app = createApp(App);
+
 app.use(router);
-app.use(createPinia());
+app.use(pinia);
+
+const userStore = useUserStore();
+if (userStore.accessToken) {
+  userStore.fetchProfile().catch(() => {
+    console.warn("Failed to fetch profile on app init");
+  });
+}
+
 app.mount("#app");

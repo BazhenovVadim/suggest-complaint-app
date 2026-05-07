@@ -172,15 +172,14 @@ const handleSubmit = async () => {
         await userStore.register(registerData);
 
         // Save profile data locally
-        const profileData = {
-            firstname: firstname.value,
-            middlename: middlename.value,
-            lastname: lastname.value,
-            email: email.value,
-            phone: phone.value,
-            fullName: `${firstname.value} ${middlename.value ? middlename.value + ' ' : ''}${lastname.value}`.trim()
-        };
-        localStorage.setItem('userProfile', JSON.stringify(profileData));
+        // const profileData = {
+        //     firstname: firstname.value,
+        //     middlename: middlename.value,
+        //     lastname: lastname.value,
+        //     email: email.value,
+        //     phone: phone.value,
+        //     fullName: `${firstname.value} ${middlename.value ? middlename.value + ' ' : ''}${lastname.value}`.trim()
+        // };
 
         await userStore.login({ email: email.value, password: password.value });
         router.push("/");
@@ -212,8 +211,9 @@ const handleSubmit = async () => {
 
                 <div class="field-group">
                     <h2>Отчество <span class="optional">(если есть)</span></h2>
-                    <Input class="middlename" :class="{ 'input-error': isMiddlenameError, 'shake': isMiddlenameShaking }"
-                        v-model="middlename" placeholder="Отчество" />
+                    <Input class="middlename"
+                        :class="{ 'input-error': isMiddlenameError, 'shake': isMiddlenameShaking }" v-model="middlename"
+                        placeholder="Отчество" />
                 </div>
 
                 <div class="field-group">

@@ -3,16 +3,17 @@ import api from '@/api'
 
 export const useUserStore = defineStore("user", {
   state: () => ({
-    profile: null,
+    profile: localStorage.getItem("profile") || null,
     accessToken: localStorage.getItem("accessToken") || null,
     userId: localStorage.getItem("userId") || null,
     refreshToken: localStorage.getItem("refreshToken") || null,
     accessTokenExpiresInSeconds: localStorage.getItem("accessTokenExpiresInSeconds")
       ? Number(localStorage.getItem("accessTokenExpiresInSeconds"))
       : null,
+    userRole: localStorage.getItem("userRole") || null,
   }),
   actions: {
-    saveAuthTokens({ accessToken, refreshToken, userId, accessTokenExpiresInSeconds }) {
+    saveAuthTokens({ accessToken, refreshToken, userId, accessTokenExpiresInSeconds, userRole }) {
       if (accessToken !== undefined) {
         this.accessToken = accessToken;
         if (accessToken) localStorage.setItem('accessToken', accessToken);
@@ -36,6 +37,12 @@ export const useUserStore = defineStore("user", {
         if (accessTokenExpiresInSeconds != null) localStorage.setItem('accessTokenExpiresInSeconds', accessTokenExpiresInSeconds);
         else localStorage.removeItem('accessTokenExpiresInSeconds');
       }
+
+      if (userRole !== undefined) {
+        this.userRole = userRole;
+        if (userRole) localStorage.setItem('userRole', userRole);
+        else localStorage.removeItem('userRole');
+      }
     },
 
     clearAuthTokens() {
@@ -43,11 +50,13 @@ export const useUserStore = defineStore("user", {
       this.refreshToken = null;
       this.userId = null;
       this.accessTokenExpiresInSeconds = null;
+      this.userRole = null;
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
       localStorage.removeItem("accessTokenExpiresInSeconds");
       localStorage.removeItem("userProfile");
+      localStorage.removeItem("userRole");
     },
 
     async register(registerData) {
@@ -83,6 +92,7 @@ export const useUserStore = defineStore("user", {
       }
 
       this.profile = await response.json();
+      localStorage.setItem('profile', JSON.stringify(this.profile));
     },
   },
 });
