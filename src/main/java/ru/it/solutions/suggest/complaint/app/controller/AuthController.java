@@ -90,7 +90,7 @@ public class AuthController {
         return new LoginResponse(
                 result.accessToken,
                 result.refreshToken,
-                result.userId,
+                result.user,
                 result.accessTokenExpiresInSeconds
         );
     }

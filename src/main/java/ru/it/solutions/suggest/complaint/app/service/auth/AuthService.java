@@ -159,7 +159,7 @@ public class AuthService {
         String refresh = jwtService.generateRefreshToken();
         user.setRefreshToken(passwordEncoder.encode(refresh), now.plusSeconds(refreshTokenTtlSeconds));
         userRepository.save(user);
-        return new AuthResult(access, refresh, user.getId(), jwtService.getAccessTokenTtlSeconds());
+        return new AuthResult(access, refresh, userMapper.toResponseDto(user), jwtService.getAccessTokenTtlSeconds());
     }
 
     private boolean isRefreshTokenValid(UserEntity user, String refreshToken, Instant now) {
@@ -198,13 +198,13 @@ public class AuthService {
     public static class AuthResult {
         public final String accessToken;
         public final String refreshToken;
-        public final UUID userId;
+        public final UserResponseDto user;
         public final long accessTokenExpiresInSeconds;
 
-        public AuthResult(String access, String refresh, UUID userId, long accessTokenExpiresInSeconds) {
+        public AuthResult(String access, String refresh, UserResponseDto user, long accessTokenExpiresInSeconds) {
             this.accessToken = access;
             this.refreshToken = refresh;
-            this.userId = userId;
+            this.user = user;
             this.accessTokenExpiresInSeconds = accessTokenExpiresInSeconds;
         }
     }
