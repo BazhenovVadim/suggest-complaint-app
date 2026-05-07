@@ -23,7 +23,13 @@ const handleSubmit = async () => {
         });
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-        router.push('/');
+        localStorage.setItem('role', response.data.role || 'USER');
+
+        if ((response.data.role || 'USER') === 'ADMIN') {
+            router.push('/admin');
+        } else {
+            router.push('/');
+        }
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || 'Неизвестная ошибка'}`;
     } finally {

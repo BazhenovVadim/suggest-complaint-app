@@ -25,11 +25,12 @@ public class JWTService {
         this.key = new SecretKeySpec(bytes, SignatureAlgorithm.HS256.getJcaName());
     }
 
-    public String generateAccessToken(UUID userId, String email) {
+    public String generateAccessToken(UUID userId, String email, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .claim("email", email)
+                .claim("role", role)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(60*15))) // 15m
                 .signWith(key)

@@ -57,13 +57,13 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid credentials");
         }
-        String access = jwtService.generateAccessToken(user.getId(), user.getEmail());
+        String access = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRoleOrDefault());
         String refresh = jwtService.generateRefreshToken();
         // store hashed refresh token
         String refreshHash = passwordEncoder.encode(refresh);
         user.setRefreshToken(refreshHash, Instant.now().plusSeconds(60 * 60 * 24 * 30)); // 30 days
         userRepository.save(user);
-        return new AuthResult(access, refresh, user.getId());
+        return new AuthResult(access, refresh, user.getId(), user.getRoleOrDefault());
     }
 
     @Transactional
@@ -104,11 +104,11 @@ public class AuthService {
         user.setPassword(newHash);
         userRepository.save(user);
         // auto-login after reset
-        String access = jwtService.generateAccessToken(user.getId(), user.getEmail());
+        String access = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRoleOrDefault());
         String refresh = jwtService.generateRefreshToken();
         user.setRefreshToken(passwordEncoder.encode(refresh), now.plusSeconds(60 * 60 * 24 * 30));
         userRepository.save(user);
-        return new AuthResult(access, refresh, user.getId());
+        return new AuthResult(access, refresh, user.getId(), user.getRoleOrDefault());
     }
 
     private UserEntity findByEmail(String email) {
@@ -121,11 +121,13 @@ public class AuthService {
         public final String accessToken;
         public final String refreshToken;
         public final UUID userId;
+        public final String role;
 
-        public AuthResult(String access, String refresh, UUID userId) {
+        public AuthResult(String access, String refresh, UUID userId, String role) {
             this.accessToken = access;
             this.refreshToken = refresh;
             this.userId = userId;
+            this.role = role;
         }
     }
 }

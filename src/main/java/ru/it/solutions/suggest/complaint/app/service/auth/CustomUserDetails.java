@@ -3,6 +3,7 @@ package ru.it.solutions.suggest.complaint.app.service.auth;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.it.solutions.suggest.complaint.app.model.entity.UserEntity;
 
@@ -18,7 +19,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // пока ролей нет
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + userEntity.getRoleOrDefault()));
     }
 
     @Override

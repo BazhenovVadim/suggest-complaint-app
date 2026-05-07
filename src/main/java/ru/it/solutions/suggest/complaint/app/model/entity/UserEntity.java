@@ -37,6 +37,8 @@ public class UserEntity {
     private Instant lastResetRequestedAt;
     private String refreshTokenHash;
     private Instant refreshTokenExpiry;
+    @Column(name = "role")
+    private String role;
 
     @OneToMany(mappedBy = "user")
     private List<Appeal> appeals;
@@ -48,6 +50,7 @@ public class UserEntity {
         this.passwordHash = passwordHash;
         this.confirmed = false;
         this.createdAt = Instant.now();
+        this.role = "USER";
     }
 
     public static UserEntity register(String email, String passwordHash) {
@@ -96,5 +99,9 @@ public class UserEntity {
 
     public void confirm() {
         this.confirmed = true;
+    }
+
+    public String getRoleOrDefault() {
+        return role == null || role.isBlank() ? "USER" : role;
     }
 }

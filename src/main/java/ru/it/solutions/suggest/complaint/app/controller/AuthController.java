@@ -42,7 +42,8 @@ public class AuthController {
             return ResponseEntity.ok(new LoginResponse(
                     result.accessToken,
                     result.refreshToken,
-                    result.userId
+                    result.userId,
+                    result.role
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(new ErrorResponse(e.getMessage()));
@@ -66,7 +67,8 @@ public class AuthController {
             return ResponseEntity.ok(new LoginResponse(
                     result.accessToken,
                     result.refreshToken,
-                    result.userId
+                    result.userId,
+                    result.role
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
