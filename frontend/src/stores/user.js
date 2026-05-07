@@ -13,7 +13,8 @@ export const useUserStore = defineStore("user", {
     userRole: localStorage.getItem("userRole") || null,
   }),
   actions: {
-    saveAuthTokens({ accessToken, refreshToken, profile, accessTokenExpiresInSeconds }) {
+    saveAuthTokens({ accessToken, refreshToken, profile, user, userId, accessTokenExpiresInSeconds }) {
+      const resolvedProfile = profile ?? user;
       if (accessToken !== undefined) {
         this.accessToken = accessToken;
         if (accessToken) localStorage.setItem('accessToken', accessToken);
@@ -26,16 +27,23 @@ export const useUserStore = defineStore("user", {
         else localStorage.removeItem('refreshToken');
       }
 
-      if (profile !== undefined) {
-        this.profile = profile;
-        if (profile) localStorage.setItem('profile', JSON.stringify(profile));
+      if (resolvedProfile !== undefined) {
+        this.profile = resolvedProfile;
+        if (resolvedProfile) localStorage.setItem('profile', JSON.stringify(resolvedProfile));
         else localStorage.removeItem('profile');
 
-        if (profile?.userRole) {
-          this.userRole = profile.userRole;
-          localStorage.setItem('userRole', profile.userRole);
+        if (resolvedProfile?.userRole) {
+          this.userRole = resolvedProfile.userRole;
+          localStorage.setItem('userRole', resolvedProfile.userRole);
         }
         else localStorage.removeItem('userRole');
+      }
+
+      const resolvedUserId = userId ?? resolvedProfile?.id;
+      if (resolvedUserId !== undefined) {
+        this.userId = resolvedUserId;
+        if (resolvedUserId) localStorage.setItem('userId', resolvedUserId);
+        else localStorage.removeItem('userId');
       }
 
       if (accessTokenExpiresInSeconds !== undefined) {

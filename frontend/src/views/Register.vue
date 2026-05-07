@@ -182,7 +182,7 @@ const handleSubmit = async () => {
         // };
 
         await userStore.login({ email: email.value, password: password.value });
-        router.push("/");
+        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
