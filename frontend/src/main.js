@@ -26,10 +26,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore();
+  const resolvedRole = userStore.userRole ?? userStore.profile?.role ?? null;
 
   if (to.meta.requiresAuth && !userStore.accessToken) {
     next("/login");
-  } else if (to.meta.requiresAdmin && userStore.userRole !== "ADMIN") {
+  } else if (to.meta.requiresAdmin && resolvedRole !== "ADMIN") {
     next("/profile");
   } else {
     next();
@@ -39,8 +40,8 @@ router.beforeEach((to, from, next) => {
 const pinia = createPinia();
 const app = createApp(App);
 
-app.use(router);
 app.use(pinia);
+app.use(router);
 
 const userStore = useUserStore();
 // await userStore.initAuth()

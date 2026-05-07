@@ -3,7 +3,16 @@ import api from '@/api'
 
 export const useUserStore = defineStore("user", {
   state: () => ({
-    profile: localStorage.getItem("profile") || null,
+    profile: (() => {
+      const rawProfile = localStorage.getItem("profile");
+      if (!rawProfile) return null;
+      try {
+        return JSON.parse(rawProfile);
+      } catch (_) {
+        localStorage.removeItem("profile");
+        return null;
+      }
+    })(),
     accessToken: localStorage.getItem("accessToken") || null,
     userId: localStorage.getItem("userId") || null,
     refreshToken: localStorage.getItem("refreshToken") || null,
@@ -13,7 +22,8 @@ export const useUserStore = defineStore("user", {
     userRole: localStorage.getItem("userRole") || null,
   }),
   actions: {
-    saveAuthTokens({ accessToken, refreshToken, profile, accessTokenExpiresInSeconds }) {
+    saveAuthTokens({ accessToken, refreshToken, profile, user, accessTokenExpiresInSeconds, userId }) {
+      const resolvedProfile = profile ?? user;
       if (accessToken !== undefined) {
         this.accessToken = accessToken;
         if (accessToken) localStorage.setItem('accessToken', accessToken);
@@ -26,16 +36,26 @@ export const useUserStore = defineStore("user", {
         else localStorage.removeItem('refreshToken');
       }
 
-      if (profile !== undefined) {
-        this.profile = profile;
-        if (profile) localStorage.setItem('profile', JSON.stringify(profile));
+      const resolvedUserId = userId ?? resolvedProfile?.id;
+      if (resolvedUserId !== undefined) {
+        this.userId = resolvedUserId;
+        if (resolvedUserId) localStorage.setItem('userId', resolvedUserId);
+        else localStorage.removeItem('userId');
+      }
+
+      if (resolvedProfile !== undefined) {
+        this.profile = resolvedProfile;
+        if (resolvedProfile) localStorage.setItem('profile', JSON.stringify(resolvedProfile));
         else localStorage.removeItem('profile');
 
-        if (profile?.userRole) {
-          this.userRole = profile.userRole;
-          localStorage.setItem('userRole', profile.userRole);
+        if (resolvedProfile?.role) {
+          this.userRole = resolvedProfile.role;
+          localStorage.setItem('userRole', resolvedProfile.role);
         }
-        else localStorage.removeItem('userRole');
+        else {
+          this.userRole = null;
+          localStorage.removeItem('userRole');
+        }
       }
 
       if (accessTokenExpiresInSeconds !== undefined) {
@@ -46,6 +66,7 @@ export const useUserStore = defineStore("user", {
     },
 
     clearAuthTokens() {
+      this.profile = null;
       this.accessToken = null;
       this.refreshToken = null;
       this.userId = null;
@@ -55,7 +76,7 @@ export const useUserStore = defineStore("user", {
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
       localStorage.removeItem("accessTokenExpiresInSeconds");
-      localStorage.removeItem("userProfile");
+      localStorage.removeItem("profile");
       localStorage.removeItem("userRole");
     },
 
@@ -66,7 +87,10 @@ export const useUserStore = defineStore("user", {
 
     async login({ email, password }) {
       const response = await api.login({ email, password })
-      this.saveAuthTokens(response.data);
+      this.saveAuthTokens({
+        ...response.data,
+        userId: response.data?.user?.id,
+      });
     },
 
     async logout() {
@@ -80,6 +104,11 @@ export const useUserStore = defineStore("user", {
     async fetchMe() {
       const res = await api.getMe()
       this.profile = res.data
+      this.userRole = res.data?.role ?? null
+      if (this.profile) localStorage.setItem('profile', JSON.stringify(this.profile));
+      else localStorage.removeItem('profile');
+      if (this.userRole) localStorage.setItem('userRole', this.userRole);
+      else localStorage.removeItem('userRole');
     },
 
     async initAuth() {

@@ -117,6 +117,10 @@ export default {
     return api.post('api/auth/refresh', data)
   },
 
+  getMe() {
+    return api.get('/api/users/me')
+  },
+
   submitAppeal(data) {
     return api.post('/api/appeals', data, {
       headers: {
