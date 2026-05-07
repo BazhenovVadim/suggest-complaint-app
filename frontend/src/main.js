@@ -43,10 +43,6 @@ app.use(router);
 app.use(pinia);
 
 const userStore = useUserStore();
-if (userStore.accessToken) {
-  userStore.fetchProfile().catch(() => {
-    console.warn("Failed to fetch profile on app init");
-  });
-}
+// await userStore.initAuth()
 
 app.mount("#app");

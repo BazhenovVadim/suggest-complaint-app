@@ -43,56 +43,52 @@ export const useUserStore = defineStore("user", {
         if (accessTokenExpiresInSeconds != null) localStorage.setItem('accessTokenExpiresInSeconds', accessTokenExpiresInSeconds);
         else localStorage.removeItem('accessTokenExpiresInSeconds');
       }
+    },
+
+    clearAuthTokens() {
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.userId = null;
+      this.accessTokenExpiresInSeconds = null;
+      this.userRole = null;
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("accessTokenExpiresInSeconds");
+      localStorage.removeItem("userProfile");
+      localStorage.removeItem("userRole");
+    },
+
+    async register(registerData) {
+      const response = await api.register(registerData);
+      this.saveAuthTokens(response.data);
+    },
+
+    async login({ email, password }) {
+      const response = await api.login({ email, password })
+      this.saveAuthTokens(response.data);
+    },
+
+    async logout() {
+      try {
+        await api.logout({ userId: this.userId, refreshToken: this.refreshToken })
+      } catch (_) { };
+
+      this.clearAuthTokens();
+    },
+
+    async fetchMe() {
+      const res = await api.getMe()
+      this.profile = res.data
+    },
+
+    async initAuth() {
+      try {
+        await this.fetchMe()
+      } catch (error) {
+        this.profile = null
+        this.clearAuthTokens()
+      }
     }
-  },
-
-  clearAuthTokens() {
-    this.accessToken = null;
-    this.refreshToken = null;
-    this.userId = null;
-    this.accessTokenExpiresInSeconds = null;
-    this.userRole = null;
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("accessTokenExpiresInSeconds");
-    localStorage.removeItem("userProfile");
-    localStorage.removeItem("userRole");
-  },
-
-  async register(registerData) {
-    const response = await api.register(registerData);
-    this.saveAuthTokens(response.data);
-  },
-
-  async login({ email, password }) {
-    const response = await api.login({ email, password })
-    this.saveAuthTokens(response.data);
-  },
-
-  async logout() {
-    try {
-      await api.logout({ userId: this.userId, refreshToken: this.refreshToken })
-    } catch (_) { };
-
-    this.clearAuthTokens();
-  },
-
-  async fetchProfile() {
-    if (!this.accessToken) {
-      this.profile = null;
-      return;
-    }
-
-    const response = await fetch("/api/user/profile", {
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch profile');
-    }
-
-    this.profile = await response.json();
-    localStorage.setItem('profile', JSON.stringify(this.profile));
   },
 });
