@@ -29,7 +29,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !userStore.accessToken) {
     next("/login");
-  } else if (to.meta.requiresAdmin && userStore.userRole !== "admin") {
+  } else if (to.meta.requiresAdmin && userStore.userRole !== "ADMIN") {
     next("/profile");
   } else {
     next();
