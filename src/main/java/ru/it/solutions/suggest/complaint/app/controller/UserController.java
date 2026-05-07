@@ -53,4 +53,12 @@ public class UserController {
     public UserResponseDto getUserInfo(@PathVariable("id") UUID userId) {
         return userService.findUserId(userId);
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getMe(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(userService.findUserId(currentUser.getId()));
+    }
 }
