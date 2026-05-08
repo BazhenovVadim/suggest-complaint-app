@@ -1,8 +1,22 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
+import api from "@/api.js";
+import { useUserStore } from "@/stores/user.js";
+import {
+    translate,
+    TYPE_TRANSLATIONS,
+    LOCATION_TRANSLATIONS,
+    CATEGORY_TRANSLATIONS,
+    STATUS_TRANSLATIONS,
+} from "@/utils/translations";
+
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
-import AppealItem from "../components/AppealItem.vue";
+import AppealItem from "@/components/AppealItem.vue";
+
+const router = useRouter();
+const userStore = useUserStore();
 
 const activeTab = ref("unprocessed");
 const tabs = [
@@ -14,6 +28,8 @@ const tabs = [
 function selectTab(id) {
     activeTab.value = id;
 }
+
+const appeals = ref([]);
 
 const searchQuery = ref("");
 const currentPage = ref(1);
@@ -65,11 +81,22 @@ function onTabLeave() {
     isHovering.value = false;
 }
 
-onMounted(() => {
-    nextTick(() => {
-        updateIndicator();
-        window.addEventListener('resize', updateIndicator);
-    });
+const logout = async () => {
+    await userStore.logout();
+    router.push("/login");
+};
+
+onMounted(async () => {
+    try {
+        const response = await api.getAppeals();
+        appeals.value = response.data;
+    } catch (e) {
+        console.error(e);
+    }
+
+    await nextTick();
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
 });
 
 watch(activeTab, () => {
@@ -80,276 +107,15 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', updateIndicator);
 });
 
-// Заглушки в форме DTO (AppealResponseDto). В продакшене данные будут приходить с сервера.
-const unprocessedAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000002",
-        appealNumber: 1334,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Среднесрочно",
-        description:
-            "В санузле плохой напор воды, горячая вода отсутствует периодически.",
-        attachments: [],
-        contactName: "Иванова А. С.",
-        contactPhone: "+79990001122",
-        contactEmail: "ivanova@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-10T09:30:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000012",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000003",
-        appealNumber: 1333,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Долгосрочно",
-        description:
-            "Соседи громко ведут себя по ночам, просьба провести профилактическую беседу.",
-        attachments: [],
-        contactName: "Петров Д. Л.",
-        contactPhone: "+79992223344",
-        contactEmail: "petrov@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-09T23:10:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000013",
-    },
-]);
-
-const processingAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000004",
-        appealNumber: 1335,
-        type: "Предложение",
-        campusLocation: "Учебный корпус",
-        problemCategory: "Учебный процесс",
-        timeframe: "Среднесрочно",
-        description:
-            "Предлагаю установить дополнительные вытяжные решётки в старых корпусах.",
-        attachments: ["vent-proposal.pdf"],
-        contactName: "Витя Д. Д.",
-        contactPhone: "+792949398485",
-        contactEmail: "ogr34@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-10T13:55:00Z",
-        status: "На рассмотрении",
-        userId: "e8a1a9f0-0000-4000-8000-000000000014",
-    },
-]);
-
-const completedAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000005",
-        appealNumber: 1336,
-        type: "Предложение",
-        campusLocation: "Кампус B",
-        problemCategory: "Благоустройство",
-        timeframe: "Долгосрочно",
-        description:
-            "Предлагаю поставить урны возле входа в корпус для уменьшения мусора.",
-        attachments: [],
-        contactName: "Сидорова Н. М.",
-        contactPhone: "+79998887766",
-        contactEmail: "sidorova@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-08T15:20:00Z",
-        status: "Завершено",
-        userId: "e8a1a9f0-0000-4000-8000-000000000015",
-    },
-]);
+const unprocessedAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'NEW')
+);
+const processingAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'IN_PROGRESS')
+);
+const completedAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'RESOLVED' || appeal.status === 'REJECTED')
+);
 
 const filteredAppeals = computed(() => {
     let list = [];
@@ -360,6 +126,11 @@ const filteredAppeals = computed(() => {
     if (!searchQuery.value) return list;
     const q = searchQuery.value.toLowerCase();
     return list.filter((a) => {
+        const typeRu = translate(a.type, TYPE_TRANSLATIONS, "").toLowerCase();
+        const locationRu = translate(a.campusLocation ?? a.location, LOCATION_TRANSLATIONS, "").toLowerCase();
+        const categoryRu = translate(a.problemCategory ?? a.category, CATEGORY_TRANSLATIONS, "").toLowerCase();
+        const statusRu = translate(a.status, STATUS_TRANSLATIONS, "").toLowerCase();
+
         return (
             String(a.appealNumber ?? a.number ?? "")
                 .toLowerCase()
@@ -368,11 +139,12 @@ const filteredAppeals = computed(() => {
             (a.contactName && a.contactName.toLowerCase().includes(q)) ||
             (a.contactEmail && a.contactEmail.toLowerCase().includes(q)) ||
             (a.contactPhone && a.contactPhone.toLowerCase().includes(q)) ||
-            (a.problemCategory &&
-                a.problemCategory.toLowerCase().includes(q)) ||
-            (a.campusLocation && a.campusLocation.toLowerCase().includes(q)) ||
             (a.title && a.title.toLowerCase().includes(q)) ||
-            (a.excerpt && a.excerpt.toLowerCase().includes(q))
+            (a.excerpt && a.excerpt.toLowerCase().includes(q)) ||
+            typeRu.includes(q) ||
+            locationRu.includes(q) ||
+            categoryRu.includes(q) ||
+            statusRu.includes(q)
         );
     });
 });
@@ -408,6 +180,13 @@ function onView(appeal) {
     console.log("Посмотреть заявку:", appeal);
 }
 
+function onStatusUpdated(updatedAppeal) {
+    const index = appeals.value.findIndex(a => a.id === updatedAppeal.id);
+    if (index !== -1) {
+        appeals.value[index] = updatedAppeal;
+    }
+}
+
 function goToPage(page) {
     if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page;
@@ -439,15 +218,17 @@ watch(searchQuery, () => {
     <main class="profile">
         <aside class="sidebar" aria-label="Профиль">
             <div class="brand">
-                <img src="../assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof.jpg" class="logo" />
             </div>
 
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">Администратор</div>
-                    <div class="email">admin@profspb.ru</div>
-                    <button class="logout">Выйти</button>
+                    <div class="name">{{ userStore.profile.firstname + " " + userStore.profile.lastname }}</div>
+                    <div class="email">{{ userStore.profile.email }}</div>
+                    <div class="contacts">VK: {{ userStore.profile.vkUserId || "—" }}</div>
+                    <div class="contacts">TG: {{ userStore.profile.telegramUserId || "—" }}</div>
+                    <button class="logout" @click="logout">Выйти</button>
                 </div>
             </div>
 
@@ -460,6 +241,7 @@ watch(searchQuery, () => {
                 <div class="header-actions">
                     <input v-model="searchQuery" type="search" class="search" placeholder="Поиск по заявкам"
                         aria-label="Поиск по заявкам" />
+                    <button class="btn-new-appeal" @click="router.push('/')">Написать заявку</button>
                 </div>
             </header>
 
@@ -489,7 +271,7 @@ watch(searchQuery, () => {
                 </div>
                 <div class="appeals">
                     <AppealItem v-for="appeal in currentAppeals" :key="appeal.appealNumber ?? appeal.number"
-                        :appeal="appeal" @view="onView" />
+                        :appeal="appeal" @view="onView" @status-updated="onStatusUpdated" />
                 </div>
                 <footer class="pagination">
                     <div class="showing">
@@ -551,15 +333,24 @@ watch(searchQuery, () => {
     color: #00ad53;
 }
 
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .user-info .name {
     font-weight: 600;
-    margin-bottom: 4px;
 }
 
 .user-info .email {
     font-size: 13px;
     color: var(--color-font);
-    margin-bottom: 8px;
+}
+
+.user-info .contacts {
+    font-size: 13px;
+    color: var(--color-font);
 }
 
 .logout {
@@ -599,6 +390,12 @@ watch(searchQuery, () => {
     font-weight: 700;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .header-actions .search {
     width: 280px;
     max-width: 40vw;
@@ -607,6 +404,26 @@ watch(searchQuery, () => {
     border: 1px solid var(--color-border, #e6e6e6);
     font-family: var(--font-text);
     font-weight: 500;
+}
+
+.btn-new-appeal {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--color-accent, #2a9d8f);
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
+}
+
+.btn-new-appeal:hover {
+    opacity: 0.9;
 }
 
 .tabs {

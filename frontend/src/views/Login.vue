@@ -1,13 +1,13 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { useUserStore } from "../stores/user";
+import { useUserStore } from "@/stores/user";
 
 import MdiEye from "~icons/mdi/eye";
 import MdiEyeOff from "~icons/mdi/eye-off";
 
-import Input from "../components/Input.vue";
-import Button from "../components/Button.vue";
+import Input from "@/components/Input.vue";
+import Button from "@/components/Button.vue";
 
 const email = ref("");
 const password = ref("");
@@ -94,7 +94,8 @@ const handleSubmit = async () => {
 <template>
     <main class="main">
         <div class="content">
-            <img src="../assets/prof.jpg" class="logo" />
+            <router-link to="/" class="back-home">← На главную</router-link>
+            <img src="@/assets/prof.jpg" class="logo" />
             <h1>Вход в систему</h1>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
@@ -148,6 +149,22 @@ const handleSubmit = async () => {
 .logo {
     max-width: 300px;
     height: auto;
+}
+
+.back-home {
+    background: var(--color-bg-option);
+    padding: 14px;
+    border-radius: 12px;
+    align-self: flex-start;
+    font-family: var(--font-text);
+    font-size: 15px;
+    color: var(--color-font);
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+.back-home:hover {
+    background: var(--color-bg-option-hover);
 }
 
 .form {

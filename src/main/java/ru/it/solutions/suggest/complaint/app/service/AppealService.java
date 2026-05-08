@@ -94,7 +94,6 @@ public class AppealService {
 
         Appeal updatedAppeal = appealRepository.save(appeal);
 
-
         return appealMapper.toResponseDto(updatedAppeal);
     }
 
@@ -103,7 +102,8 @@ public class AppealService {
         log.info("Изменение статуса обращения {} на {} администратором {}", id, status, currentUser.getId());
 
         if (!isAdmin(currentUser)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Менять статус обращения может только администратор");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Менять статус обращения может только администратор");
         }
 
         Appeal appeal = getAppealEntityById(id);
@@ -139,7 +139,8 @@ public class AppealService {
 
     private Appeal getAppealEntityById(UUID id) {
         return appealRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Обращение не найдено с id: " + id));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Обращение не найдено с id: " + id));
     }
 
     private void checkAppealAccess(Appeal appeal, UserEntity currentUser) {
@@ -150,7 +151,8 @@ public class AppealService {
         if (appeal.getUser() == null || !appeal.getUser().getId().equals(currentUser.getId())) {
             log.warn("Попытка доступа к обращению {} пользователем {}, не являющимся автором",
                     appeal.getId(), currentUser.getId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Доступ запрещен. Вы не являетесь автором обращения");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Доступ запрещен. Вы не являетесь автором обращения");
         }
     }
 

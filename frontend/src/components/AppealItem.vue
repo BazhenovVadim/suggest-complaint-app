@@ -62,6 +62,18 @@
                         <div class="divider" />
 
                         <div class="detail-row">
+                            <div class="detail-icon detail-icon--location">
+                                <MdiMapMarker />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Локация</div>
+                                <div class="detail-value">{{ displayCampusLocation }}</div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
                             <div class="detail-icon detail-icon--category">
                                 <MdiHome />
                             </div>
@@ -91,7 +103,6 @@
                             </div>
                             <div class="detail-content">
                                 <div class="detail-label">Описание обращения</div>
-                                <div class="detail-value detail-value--title">{{ displayProblemCategory }}</div>
                                 <div class="detail-value detail-value--body">{{ fullDescription }}</div>
                             </div>
                         </div>
@@ -129,7 +140,7 @@
                         </div>
                     </div>
 
-                    <Button v-if="showActionButton" @click="handleAction">
+                    <Button v-if="showActionButton" @click="updateStatus">
                         {{ actionButtonText }}
                     </Button>
                 </div>
@@ -139,9 +150,19 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed, ref } from "vue";
+import { computed, ref } from "vue";
+import api from "@/api";
+import {
+    translate,
+    STATUS_TRANSLATIONS,
+    TYPE_TRANSLATIONS,
+    LOCATION_TRANSLATIONS,
+    CATEGORY_TRANSLATIONS,
+    TIMEFRAME_TRANSLATIONS,
+} from "@/utils/translations";
 
 import MdiArrowLeft from "~icons/mdi/arrow-left";
+import MdiMapMarker from "~icons/mdi/map-marker";
 import MdiFlag from "~icons/mdi/flag";
 import MdiHome from "~icons/mdi/home";
 import MdiClock from "~icons/mdi/clock";
@@ -152,7 +173,7 @@ import MdiCheckCircle from "~icons/mdi/check-circle";
 import MdiAlertCircle from "~icons/mdi/alert-circle";
 import MdiClockTimeFour from "~icons/mdi/clock-time-four";
 
-import Button from "./Button.vue";
+import Button from "@/components/Button.vue";
 
 const props = defineProps({
     appeal: {
@@ -161,7 +182,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["view", "action"]);
+const emit = defineEmits(["view", "action", "status-updated"]);
 
 const isModalOpen = ref(false);
 
@@ -175,45 +196,57 @@ function closeModal() {
     document.body.style.overflow = "";
 }
 
-function handleAction() {
-    alert("ТУТ НАДО ПРИВЯЗАТЬ К БЭКЕНДУ");
-    closeModal();
+function updateStatus() {
+    if (props.appeal.status === "NEW") {
+        console.log("updating status to IN_PROGRESS", props.appeal.id);
+        api.updateAppealStatus(props.appeal.id, "IN_PROGRESS")
+            .then((response) => {
+                emit("status-updated", response.data);
+                closeModal();
+            })
+            .catch((error) => alert(error.message));
+    } else if (props.appeal.status === "IN_PROGRESS") {
+        api.updateAppealStatus(props.appeal.id, "RESOLVED")
+            .then((response) => {
+                emit("status-updated", response.data);
+                closeModal();
+            })
+            .catch((error) => alert(error.message));
+    }
 }
 
 const displayNumber = computed(
-    () => props.appeal?.appealNumber ?? props.appeal?.number ?? "",
+    () => props.appeal?.appealNumber ?? "",
 );
-const displayType = computed(() => {
-    const t = props.appeal?.type ?? "";
-    return t ? String(t) : "";
-});
-const displayCampusLocation = computed(
-    () => props.appeal?.campusLocation ?? props.appeal?.location ?? "",
+const rawType = computed(() => props.appeal?.type ?? "");
+const displayType = computed(() =>
+    translate(rawType.value, TYPE_TRANSLATIONS, rawType.value),
 );
-const displayProblemCategory = computed(
-    () => props.appeal?.problemCategory ?? props.appeal?.category ?? "",
+const rawCampusLocation = computed(() => props.appeal?.campusLocation ?? props.appeal?.location ?? "");
+const displayCampusLocation = computed(() =>
+    translate(rawCampusLocation.value, LOCATION_TRANSLATIONS, rawCampusLocation.value),
 );
-const displayTimeframe = computed(() => {
-    const tf = props.appeal?.timeframe ?? "";
-    return tf ? String(tf) : "";
-});
+const rawProblemCategory = computed(() => props.appeal?.problemCategory ?? props.appeal?.category ?? "");
+const displayProblemCategory = computed(() =>
+    translate(rawProblemCategory.value, CATEGORY_TRANSLATIONS, rawProblemCategory.value),
+);
+const rawTimeframe = computed(() => props.appeal?.timeframe ?? "");
+const displayTimeframe = computed(() =>
+    translate(rawTimeframe.value, TIMEFRAME_TRANSLATIONS, rawTimeframe.value),
+);
 
 const fullDescription = computed(
-    () =>
-        props.appeal?.description ??
-        props.appeal?.excerpt ??
-        props.appeal?.title ??
-        "",
+    () => props.appeal?.description ?? "",
 );
 
 const displayContactName = computed(
-    () => props.appeal?.contactName ?? props.appeal?.author ?? "",
-);
-const displayContactEmail = computed(
-    () => props.appeal?.contactEmail ?? props.appeal?.email ?? "",
+    () => props.appeal?.contactName ?? "",
 );
 const displayContactPhone = computed(
-    () => props.appeal?.contactPhone ?? props.appeal?.phone ?? "",
+    () => props.appeal?.contactPhone ?? "",
+);
+const displayContactEmail = computed(
+    () => props.appeal?.contactEmail ?? "",
 );
 
 const created = computed(() => props.appeal?.createdAt ?? null);
@@ -264,29 +297,27 @@ const statusText = computed(() => {
     const s = rawStatus.value;
     if (s == null) return "";
     if (typeof s === "object" && s.name) return String(s.name);
-    return String(s);
+    return translate(String(s), STATUS_TRANSLATIONS, String(s));
 });
 
 const isStatusNew = computed(() => {
-    const n = statusText.value.toLowerCase();
-    return n.includes("нов") || n.includes("new");
+    const key = String(rawStatus.value).toUpperCase();
+    return key === "NEW";
 });
 
 const isStatusProcessing = computed(() => {
-    const n = statusText.value.toLowerCase();
+    const key = String(rawStatus.value).toUpperCase();
     return (
-        n.includes("рассмотр") ||
-        n.includes("review") ||
-        n.includes("processing") ||
-        n.includes("inprogress") ||
-        n.includes("in_progress") ||
-        n.includes("in progress")
+        key === "IN_PROGRESS" ||
+        key === "INPROGRESS" ||
+        key === "PROCESSING" ||
+        key === "REVIEW"
     );
 });
 
 const isStatusDone = computed(() => {
-    const n = statusText.value.toLowerCase();
-    return n.includes("заверш") || n.includes("done") || n.includes("completed");
+    const key = String(rawStatus.value).toUpperCase();
+    return key === "RESOLVED" || key === "REJECTED" || key === "DONE" || key === "COMPLETED";
 });
 
 const badgeClass = computed(() => {
@@ -555,6 +586,11 @@ function view() {
 }
 
 .detail-icon--flag {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--location {
     background: #e8f5ee;
     color: #2d9e5f;
 }
