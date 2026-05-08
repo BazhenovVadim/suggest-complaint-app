@@ -1,17 +1,17 @@
 <script setup>
 import { ref, watch } from "vue";
-import api from "../api.js";
-import { useUserStore } from "../stores/user.js";
+import api from "@/api.js";
+import { useUserStore } from "@/stores/user.js";
 
-import Option from "../components/Option.vue";
-import CategorySelect from "../components/CategorySelect.vue";
-import TextBox from "../components/TextBox.vue";
-import Input from "../components/Input.vue";
-import Button from "../components/Button.vue";
-import FileUpload from "../components/FileUpload.vue";
-import Checkbox from "../components/Checkbox.vue";
-import Toggle from "../components/Toggle.vue";
-import ProfileMenu from "../components/ProfileMenu.vue";
+import Option from "@/components/Option.vue";
+import CategorySelect from "@/components/CategorySelect.vue";
+import TextBox from "@/components/TextBox.vue";
+import Input from "@/components/Input.vue";
+import Button from "@/components/Button.vue";
+import FileUpload from "@/components/FileUpload.vue";
+import Checkbox from "@/components/Checkbox.vue";
+import Toggle from "@/components/Toggle.vue";
+import ProfileMenu from "@/components/ProfileMenu.vue";
 
 const userStore = useUserStore();
 
@@ -164,7 +164,7 @@ const handleSubmit = async () => {
     <main class="main">
         <div class="content">
             <div class="header">
-                <img src="../assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof.jpg" class="logo" />
                 <ProfileMenu />
             </div>
             <div class="greet">

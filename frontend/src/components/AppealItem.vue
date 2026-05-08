@@ -62,6 +62,18 @@
                         <div class="divider" />
 
                         <div class="detail-row">
+                            <div class="detail-icon detail-icon--location">
+                                <MdiMapMarker />
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">Локация</div>
+                                <div class="detail-value">{{ displayCampusLocation }}</div>
+                            </div>
+                        </div>
+
+                        <div class="divider" />
+
+                        <div class="detail-row">
                             <div class="detail-icon detail-icon--category">
                                 <MdiHome />
                             </div>
@@ -91,7 +103,6 @@
                             </div>
                             <div class="detail-content">
                                 <div class="detail-label">Описание обращения</div>
-                                <div class="detail-value detail-value--title">{{ displayProblemCategory }}</div>
                                 <div class="detail-value detail-value--body">{{ fullDescription }}</div>
                             </div>
                         </div>
@@ -140,7 +151,7 @@
 
 <script setup>
 import { defineProps, defineEmits, computed, ref } from "vue";
-import api from "../api";
+import api from "@/api";
 import {
     translate,
     STATUS_TRANSLATIONS,
@@ -148,9 +159,10 @@ import {
     LOCATION_TRANSLATIONS,
     CATEGORY_TRANSLATIONS,
     TIMEFRAME_TRANSLATIONS,
-} from "../utils/translations";
+} from "@/utils/translations";
 
 import MdiArrowLeft from "~icons/mdi/arrow-left";
+import MdiMapMarker from "~icons/mdi/map-marker";
 import MdiFlag from "~icons/mdi/flag";
 import MdiHome from "~icons/mdi/home";
 import MdiClock from "~icons/mdi/clock";
@@ -161,7 +173,7 @@ import MdiCheckCircle from "~icons/mdi/check-circle";
 import MdiAlertCircle from "~icons/mdi/alert-circle";
 import MdiClockTimeFour from "~icons/mdi/clock-time-four";
 
-import Button from "./Button.vue";
+import Button from "@/components/Button.vue";
 
 const props = defineProps({
     appeal: {
@@ -204,7 +216,7 @@ function updateStatus() {
 }
 
 const displayNumber = computed(
-    () => props.appeal?.appealNumber ?? props.appeal?.number ?? "",
+    () => props.appeal?.appealNumber ?? "",
 );
 const rawType = computed(() => props.appeal?.type ?? "");
 const displayType = computed(() =>
@@ -224,21 +236,17 @@ const displayTimeframe = computed(() =>
 );
 
 const fullDescription = computed(
-    () =>
-        props.appeal?.description ??
-        props.appeal?.excerpt ??
-        props.appeal?.title ??
-        "",
+    () => props.appeal?.description ?? "",
 );
 
 const displayContactName = computed(
-    () => props.appeal?.contactName ?? props.appeal?.author ?? "",
-);
-const displayContactEmail = computed(
-    () => props.appeal?.contactEmail ?? props.appeal?.email ?? "",
+    () => props.appeal?.contactName ?? "",
 );
 const displayContactPhone = computed(
-    () => props.appeal?.contactPhone ?? props.appeal?.phone ?? "",
+    () => props.appeal?.contactPhone ?? "",
+);
+const displayContactEmail = computed(
+    () => props.appeal?.contactEmail ?? "",
 );
 
 const created = computed(() => props.appeal?.createdAt ?? null);
@@ -578,6 +586,11 @@ function view() {
 }
 
 .detail-icon--flag {
+    background: #e8f5ee;
+    color: #2d9e5f;
+}
+
+.detail-icon--location {
     background: #e8f5ee;
     color: #2d9e5f;
 }

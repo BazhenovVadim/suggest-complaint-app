@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
-import { useUserStore } from "../stores/user";
+import { useUserStore } from "@/stores/user";
 
 const router = useRouter();
 const showDropdown = ref(false);
@@ -14,7 +14,7 @@ const toggleDropdown = () => {
 };
 
 const logout = async () => {
-    userStore.logout();
+    await userStore.logout();
     showDropdown.value = false;
     router.push("/login");
 };

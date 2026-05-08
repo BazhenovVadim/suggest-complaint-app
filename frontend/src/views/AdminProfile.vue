@@ -1,18 +1,18 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
-import api from "../api.js";
-import { useUserStore } from "../stores/user.js";
+import api from "@/api.js";
+import { useUserStore } from "@/stores/user.js";
 import {
     translate,
     TYPE_TRANSLATIONS,
     LOCATION_TRANSLATIONS,
     CATEGORY_TRANSLATIONS,
     STATUS_TRANSLATIONS,
-} from "../utils/translations";
+} from "@/utils/translations";
 
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
-import AppealItem from "../components/AppealItem.vue";
+import AppealItem from "@/components/AppealItem.vue";
 
 const userStore = useUserStore();
 
@@ -80,7 +80,7 @@ function onTabLeave() {
 }
 
 const logout = async () => {
-    userStore.logout();
+    await userStore.logout();
     router.push("/login");
 };
 
@@ -216,7 +216,7 @@ watch(searchQuery, () => {
     <main class="profile">
         <aside class="sidebar" aria-label="Профиль">
             <div class="brand">
-                <img src="../assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof.jpg" class="logo" />
             </div>
 
             <div class="user">

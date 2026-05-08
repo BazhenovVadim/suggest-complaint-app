@@ -86,7 +86,7 @@ const refreshAccessToken = async () => {
   }
 
   try {
-    const module = await import('./stores/user');
+    const module = await import('@/stores/user');
     const { useUserStore } = module;
     const userStore = useUserStore();
     userStore.saveAuthTokens({

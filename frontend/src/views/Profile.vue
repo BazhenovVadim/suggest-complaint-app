@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
-import AppealItem from "../components/AppealItem.vue";
+import AppealItem from "@/components/AppealItem.vue";
 
 const activeTab = ref("active");
 const tabs = [
@@ -213,7 +213,7 @@ function onView(appeal) {
     <main class="profile">
         <aside class="sidebar" aria-label="Профиль">
             <div class="brand">
-                <img src="../assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof.jpg" class="logo" />
             </div>
 
             <div class="user">
