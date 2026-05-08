@@ -30,21 +30,21 @@ services:
       - "5173:5173"
     restart: unless-stopped
 
-  vk-bot:
-    build:
-      context: ./vk_bot
-      dockerfile: Dockerfile
-    container_name: suggest-complaint-vk-bot
-    depends_on:
-      - kafka
-      - app
-    environment:
-      VK_TOKEN: ${VK_TOKEN}
-      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
-      BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      KAFKA_TOPIC_APPEAL_STATUS_CHANGED: ${KAFKA_TOPIC_APPEAL_STATUS_CHANGED:-appeal.status.changed}
-    restart: unless-stopped
+  # vk-bot:
+  #   build:
+  #     context: ./vk_bot
+  #     dockerfile: Dockerfile
+  #   container_name: suggest-complaint-vk-bot
+  #   depends_on:
+  #     - kafka
+  #     - app
+  #   environment:
+  #     VK_TOKEN: ${VK_TOKEN}
+  #     BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+  #     BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
+  #     KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  #     KAFKA_TOPIC_APPEAL_STATUS_CHANGED: ${KAFKA_TOPIC_APPEAL_STATUS_CHANGED:-appeal.status.changed}
+  #   restart: unless-stopped
 
   #  tg-bot:
   #    build:
@@ -71,37 +71,37 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d suggest_complaint" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d suggest_complaint"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  kafka:
-    image: wurstmeister/kafka
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
+  # kafka:
+  #   image: wurstmeister/kafka
+  #   ports:
+  #     - "9092:9092"
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
 
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+  #     KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092
+  #     KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
 
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
 
-  zookeeper:
-    container_name: suggest-zookeeper
-    image: wurstmeister/zookeeper
-    ports:
-      - "2181:2181"
-      - "29092:29092"
-    volumes:
-      #      - ~/Volumes/puzzle-apps/zookeeper/conf:/opt/zookeeper-3.4.13/conf
-      - ~/Volumes/puzzle-apps/zookeeper/data:/opt/zookeeper-3.4.13/data
+  # zookeeper:
+  #   container_name: suggest-zookeeper
+  #   image: wurstmeister/zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #     - "29092:29092"
+  #   volumes:
+  #     #      - ~/Volumes/puzzle-apps/zookeeper/conf:/opt/zookeeper-3.4.13/conf
+  #     - ~/Volumes/puzzle-apps/zookeeper/data:/opt/zookeeper-3.4.13/data
 
 volumes:
   postgres_data:

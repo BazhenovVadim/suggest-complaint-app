@@ -1,8 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
+import api from "../api.js";
+import { useUserStore } from "../stores/user.js";
+
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "../components/AppealItem.vue";
+
+const userStore = useUserStore();
 
 const activeTab = ref("unprocessed");
 const tabs = [
@@ -14,6 +19,8 @@ const tabs = [
 function selectTab(id) {
     activeTab.value = id;
 }
+
+const appeals = ref([]);
 
 const searchQuery = ref("");
 const currentPage = ref(1);
@@ -65,11 +72,22 @@ function onTabLeave() {
     isHovering.value = false;
 }
 
-onMounted(() => {
-    nextTick(() => {
-        updateIndicator();
-        window.addEventListener('resize', updateIndicator);
-    });
+const logout = async () => {
+    userStore.logout();
+    router.push("/login");
+};
+
+onMounted(async () => {
+    try {
+        const response = await api.getAppeals();
+        appeals.value = response.data;
+    } catch (e) {
+        console.error(e);
+    }
+
+    await nextTick();
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
 });
 
 watch(activeTab, () => {
@@ -80,276 +98,15 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', updateIndicator);
 });
 
-// Заглушки в форме DTO (AppealResponseDto). В продакшене данные будут приходить с сервера.
-const unprocessedAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    }, {
-        id: "3f1a7e30-0000-4000-8000-000000000001",
-        appealNumber: 1337,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Срочно",
-        description:
-            "В комнате холодно, батареи еле тёплые — температура ниже нормы, просьба проверить систему отопления.",
-        attachments: [],
-        contactName: "Костик В. В.",
-        contactPhone: "+79993398485",
-        contactEmail: "kostik444@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-11T12:45:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000011",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000002",
-        appealNumber: 1334,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Среднесрочно",
-        description:
-            "В санузле плохой напор воды, горячая вода отсутствует периодически.",
-        attachments: [],
-        contactName: "Иванова А. С.",
-        contactPhone: "+79990001122",
-        contactEmail: "ivanova@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-10T09:30:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000012",
-    },
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000003",
-        appealNumber: 1333,
-        type: "Жалоба",
-        campusLocation: "Студгородок",
-        problemCategory: "Общежитие/Комната",
-        timeframe: "Долгосрочно",
-        description:
-            "Соседи громко ведут себя по ночам, просьба провести профилактическую беседу.",
-        attachments: [],
-        contactName: "Петров Д. Л.",
-        contactPhone: "+79992223344",
-        contactEmail: "petrov@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-09T23:10:00Z",
-        status: "Новая",
-        userId: "e8a1a9f0-0000-4000-8000-000000000013",
-    },
-]);
-
-const processingAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000004",
-        appealNumber: 1335,
-        type: "Предложение",
-        campusLocation: "Учебный корпус",
-        problemCategory: "Учебный процесс",
-        timeframe: "Среднесрочно",
-        description:
-            "Предлагаю установить дополнительные вытяжные решётки в старых корпусах.",
-        attachments: ["vent-proposal.pdf"],
-        contactName: "Витя Д. Д.",
-        contactPhone: "+792949398485",
-        contactEmail: "ogr34@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-10T13:55:00Z",
-        status: "На рассмотрении",
-        userId: "e8a1a9f0-0000-4000-8000-000000000014",
-    },
-]);
-
-const completedAppeals = ref([
-    {
-        id: "3f1a7e30-0000-4000-8000-000000000005",
-        appealNumber: 1336,
-        type: "Предложение",
-        campusLocation: "Кампус B",
-        problemCategory: "Благоустройство",
-        timeframe: "Долгосрочно",
-        description:
-            "Предлагаю поставить урны возле входа в корпус для уменьшения мусора.",
-        attachments: [],
-        contactName: "Сидорова Н. М.",
-        contactPhone: "+79998887766",
-        contactEmail: "sidorova@mail.ru",
-        personalDataConsent: true,
-        createdAt: "2025-11-08T15:20:00Z",
-        status: "Завершено",
-        userId: "e8a1a9f0-0000-4000-8000-000000000015",
-    },
-]);
+const unprocessedAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'NEW')
+);
+const processingAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'IN_PROGRESS')
+);
+const completedAppeals = computed(() =>
+    appeals.value.filter(appeal => appeal.status === 'RESOLVED' || appeal.status === 'REJECTED')
+);
 
 const filteredAppeals = computed(() => {
     let list = [];
@@ -445,9 +202,9 @@ watch(searchQuery, () => {
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">Администратор</div>
-                    <div class="email">admin@profspb.ru</div>
-                    <button class="logout">Выйти</button>
+                    <div class="name">{{ userStore.profile.name }}</div>
+                    <div class="email">{{ userStore.profile.email }}</div>
+                    <button class="logout" @click="logout">Выйти</button>
                 </div>
             </div>
 

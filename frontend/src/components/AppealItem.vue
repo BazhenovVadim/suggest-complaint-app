@@ -129,7 +129,7 @@
                         </div>
                     </div>
 
-                    <Button v-if="showActionButton" @click="handleAction">
+                    <Button v-if="showActionButton" @click="updateStatus">
                         {{ actionButtonText }}
                     </Button>
                 </div>
@@ -140,6 +140,7 @@
 
 <script setup>
 import { defineProps, defineEmits, computed, ref } from "vue";
+import api from "../api";
 
 import MdiArrowLeft from "~icons/mdi/arrow-left";
 import MdiFlag from "~icons/mdi/flag";
@@ -175,9 +176,17 @@ function closeModal() {
     document.body.style.overflow = "";
 }
 
-function handleAction() {
-    alert("ТУТ НАДО ПРИВЯЗАТЬ К БЭКЕНДУ");
-    closeModal();
+function updateStatus() {
+    if (props.appeal.status === "NEW") {
+        console.log("updating status to IN_PROGRESS", props.appeal.id);
+        api.updateAppealStatus(props.appeal.id, "IN_PROGRESS")
+            .then(() => closeModal())
+            .catch((error) => alert(error.message));
+    } else if (props.appeal.status === "IN_PROGRESS") {
+        api.updateAppealStatus(props.appeal.id, "RESOLVED")
+            .then(() => closeModal())
+            .catch((error) => alert(error.message));
+    }
 }
 
 const displayNumber = computed(

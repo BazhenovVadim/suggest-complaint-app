@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import api from "../api.js";
+import { useUserStore } from "../stores/user.js";
 
 import Option from "../components/Option.vue";
 import CategorySelect from "../components/CategorySelect.vue";
@@ -12,7 +13,7 @@ import Checkbox from "../components/Checkbox.vue";
 import Toggle from "../components/Toggle.vue";
 import ProfileMenu from "../components/ProfileMenu.vue";
 
-const isAuthenticated = ref(!!localStorage.getItem("accessToken"));
+const userStore = useUserStore();
 
 const typeOptions = [
     { value: "COMPLAINT", label: "Жалоба", icon: "mdi-flag" },
@@ -86,7 +87,7 @@ watch(consent, () => {
 });
 
 const handleSubmit = async () => {
-    if (!isAuthenticated.value) {
+    if (!userStore.isAuthenticated) {
         errorMessage.value =
             "Необходимо войти в систему для отправки обращения";
         return;
@@ -208,8 +209,8 @@ const handleSubmit = async () => {
                 <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
                 <Button :disabled="!consent" @click="handleSubmit">Отправить обращение</Button>
             </div>
-            <p v-if="successMessage" class="success-msg">{{ successMessage.value }}</p>
-            <p v-if="errorMessage" class="error-msg">{{ errorMessage.value }}</p>
+            <p v-if="successMessage" class="success-msg">{{ successMessage }}</p>
+            <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
         <footer>Ну футер там и т.д.</footer>
     </main>
