@@ -194,6 +194,7 @@ const handleSubmit = async () => {
 <template>
     <main class="main">
         <div class="content">
+            <router-link to="/" class="back-home">← На главную</router-link>
             <img src="@/assets/prof.jpg" class="logo" alt="Логотип" />
             <h1>Регистрация</h1>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
@@ -299,6 +300,22 @@ const handleSubmit = async () => {
 .logo {
     max-width: 300px;
     height: auto;
+}
+
+.back-home {
+    background: var(--color-bg-option);
+    padding: 14px;
+    border-radius: 12px;
+    align-self: flex-start;
+    font-family: var(--font-text);
+    font-size: 15px;
+    color: var(--color-font);
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+.back-home:hover {
+    background: var(--color-bg-option-hover);
 }
 
 .form {
