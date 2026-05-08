@@ -14,6 +14,7 @@ import {
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "@/components/AppealItem.vue";
+import AppealModal from "@/components/AppealModal.vue";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -177,8 +178,65 @@ const pagerButtons = computed(() => {
 });
 
 function onView(appeal) {
-    console.log("Посмотреть заявку:", appeal);
+    selectedAppeal.value = appeal;
+    isAppealModalOpen.value = true;
+    document.body.style.overflow = "hidden";
 }
+
+function onModalClose() {
+    isAppealModalOpen.value = false;
+    document.body.style.overflow = "";
+}
+
+async function onModalAction() {
+    const a = selectedAppeal.value;
+    if (!a) return;
+    const newStatus = a.status === "NEW" ? "IN_PROGRESS" : "RESOLVED";
+    try {
+        const response = await api.updateAppealStatus(a.id, newStatus);
+        onStatusUpdated(response.data);
+        isAppealModalOpen.value = false;
+        document.body.style.overflow = "";
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function onModalReject() {
+    const a = selectedAppeal.value;
+    if (!a) return;
+    try {
+        const response = await api.updateAppealStatus(a.id, "REJECTED");
+        onStatusUpdated(response.data);
+        isAppealModalOpen.value = false;
+        document.body.style.overflow = "";
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+const selectedAppeal = ref(null);
+const isAppealModalOpen = ref(false);
+
+const showActions = computed(() => {
+    const a = selectedAppeal.value;
+    if (!a) return false;
+    const s = String(a.status).toUpperCase();
+    return s !== "RESOLVED" && s !== "REJECTED";
+});
+
+const showReject = computed(() => {
+    const a = selectedAppeal.value;
+    if (!a) return false;
+    return String(a.status).toUpperCase() === "NEW";
+});
+
+const actionLabel = computed(() => {
+    const a = selectedAppeal.value;
+    if (!a) return "";
+    const s = String(a.status).toUpperCase();
+    return s === "NEW" ? "Принять в обработку" : "Завершить обработку";
+});
 
 function onStatusUpdated(updatedAppeal) {
     const index = appeals.value.findIndex(a => a.id === updatedAppeal.id);
@@ -289,6 +347,9 @@ watch(searchQuery, () => {
                 </footer>
             </section>
         </section>
+
+        <AppealModal v-model="isAppealModalOpen" :appeal="selectedAppeal" :show-actions="showActions"
+            :action-label="actionLabel" :show-reject="showReject" @action="onModalAction" @reject="onModalReject" />
     </main>
 </template>
 
@@ -300,7 +361,6 @@ watch(searchQuery, () => {
     color: var(--color-text, #222);
 }
 
-/* Sidebar */
 .sidebar {
     width: 280px;
     flex: 0 0 280px;
