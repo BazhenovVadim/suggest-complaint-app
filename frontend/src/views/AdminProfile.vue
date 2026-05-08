@@ -165,6 +165,13 @@ function onView(appeal) {
     console.log("Посмотреть заявку:", appeal);
 }
 
+function onStatusUpdated(updatedAppeal) {
+    const index = appeals.value.findIndex(a => a.id === updatedAppeal.id);
+    if (index !== -1) {
+        appeals.value[index] = updatedAppeal;
+    }
+}
+
 function goToPage(page) {
     if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page;
@@ -246,7 +253,7 @@ watch(searchQuery, () => {
                 </div>
                 <div class="appeals">
                     <AppealItem v-for="appeal in currentAppeals" :key="appeal.appealNumber ?? appeal.number"
-                        :appeal="appeal" @view="onView" />
+                        :appeal="appeal" @view="onView" @status-updated="onStatusUpdated" />
                 </div>
                 <footer class="pagination">
                     <div class="showing">

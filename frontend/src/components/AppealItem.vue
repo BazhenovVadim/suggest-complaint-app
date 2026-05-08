@@ -162,7 +162,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["view", "action"]);
+const emit = defineEmits(["view", "action", "status-updated"]);
 
 const isModalOpen = ref(false);
 
@@ -180,11 +180,17 @@ function updateStatus() {
     if (props.appeal.status === "NEW") {
         console.log("updating status to IN_PROGRESS", props.appeal.id);
         api.updateAppealStatus(props.appeal.id, "IN_PROGRESS")
-            .then(() => closeModal())
+            .then((response) => {
+                emit("status-updated", response.data);
+                closeModal();
+            })
             .catch((error) => alert(error.message));
     } else if (props.appeal.status === "IN_PROGRESS") {
         api.updateAppealStatus(props.appeal.id, "RESOLVED")
-            .then(() => closeModal())
+            .then((response) => {
+                emit("status-updated", response.data);
+                closeModal();
+            })
             .catch((error) => alert(error.message));
     }
 }
