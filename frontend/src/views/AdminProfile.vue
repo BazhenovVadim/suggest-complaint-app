@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
 import api from "@/api.js";
 import { useUserStore } from "@/stores/user.js";
 import {
@@ -14,6 +15,7 @@ import {
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "@/components/AppealItem.vue";
 
+const router = useRouter();
 const userStore = useUserStore();
 
 const activeTab = ref("unprocessed");
@@ -239,6 +241,7 @@ watch(searchQuery, () => {
                 <div class="header-actions">
                     <input v-model="searchQuery" type="search" class="search" placeholder="Поиск по заявкам"
                         aria-label="Поиск по заявкам" />
+                    <button class="btn-new-appeal" @click="router.push('/')">Написать заявку</button>
                 </div>
             </header>
 
@@ -387,6 +390,12 @@ watch(searchQuery, () => {
     font-weight: 700;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .header-actions .search {
     width: 280px;
     max-width: 40vw;
@@ -395,6 +404,26 @@ watch(searchQuery, () => {
     border: 1px solid var(--color-border, #e6e6e6);
     font-family: var(--font-text);
     font-weight: 500;
+}
+
+.btn-new-appeal {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--color-accent, #2a9d8f);
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: var(--font-text);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
+}
+
+.btn-new-appeal:hover {
+    opacity: 0.9;
 }
 
 .tabs {

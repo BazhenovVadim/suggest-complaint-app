@@ -150,7 +150,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed, ref } from "vue";
+import { computed, ref } from "vue";
 import api from "@/api";
 import {
     translate,
