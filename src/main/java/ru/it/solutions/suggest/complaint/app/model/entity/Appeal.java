@@ -7,7 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,7 +31,7 @@ public class Appeal {
     private AppealType type;
 
     @Column(updatable = false)
-    private Integer appealNumber;
+    private Long appealNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -44,12 +47,10 @@ public class Appeal {
     @Column(nullable = false, length = 5000)
     private String description;
 
-    private String filePath;
-    private String fileName;
-
-    private String contactName;
-    private String contactPhone;
-    private String contactEmail;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    @Builder.Default
+    private List<String> attachments = new ArrayList<>();
 
     @Column(nullable = false)
     private Boolean personalDataConsent;

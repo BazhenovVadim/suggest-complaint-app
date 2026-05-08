@@ -2,6 +2,8 @@ package ru.it.solutions.suggest.complaint.app.model.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -10,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import ru.it.solutions.suggest.complaint.app.model.enums.UserRole;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,7 +39,21 @@ public class UserEntity {
     private Instant resetTokenExpiry;
     private Instant lastResetRequestedAt;
     private String refreshTokenHash;
+    private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.USER;
     private Instant refreshTokenExpiry;
+
+    @Column(name = "firstname", length = 100)
+    private String firstname;
+
+    @Column(name = "middlename", length = 100)
+    private String middlename;
+
+    @Column(name = "lastname", length = 100)
+    private String lastname;
 
     @OneToMany(mappedBy = "user")
     private List<Appeal> appeals;
@@ -47,6 +64,7 @@ public class UserEntity {
         this.email = email;
         this.passwordHash = passwordHash;
         this.confirmed = false;
+        this.role = UserRole.USER;
         this.createdAt = Instant.now();
     }
 
@@ -88,10 +106,9 @@ public class UserEntity {
         this.refreshTokenExpiry = expiry;
     }
 
-    public boolean verifyRefreshToken(String tokenHash, Instant now) {
-        if (refreshTokenHash == null || refreshTokenExpiry == null) return false;
-        if (now.isAfter(refreshTokenExpiry)) return false;
-        return refreshTokenHash.equals(tokenHash);
+    public void clearRefreshToken() {
+        this.refreshTokenHash = null;
+        this.refreshTokenExpiry = null;
     }
 
     public void confirm() {

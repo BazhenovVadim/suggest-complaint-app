@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 import java.util.UUID;
 
@@ -19,8 +20,7 @@ public class AppealUpdateDto {
     private ProblemCategory problemCategory;
     private Timeframe timeframe;
     private String description;
-    private String filePath;
-    private String fileName;
+    private List<String> attachments;
     private String contactName;
     private String contactPhone;
     private String contactEmail;

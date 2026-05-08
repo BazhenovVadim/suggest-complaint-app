@@ -10,7 +10,7 @@
             <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="appeal_number" type="int">
+            <column name="appeal_number" type="bigint">
                 <constraints nullable="true" unique="true"/>
             </column>
             <column name="user_id" type="UUID"/>
@@ -52,6 +52,13 @@
                 referencedTableName="users"
                 referencedColumnNames="id"
                 onDelete="SET NULL"/>
+    </changeSet>
+
+    <changeSet id="create-appeal-seq" author="Vadim">
+        <createSequence
+                sequenceName="appeal_number_seq"
+                startValue="1"
+                incrementBy="1"/>
     </changeSet>
 
 </databaseChangeLog>

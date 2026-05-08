@@ -12,12 +12,34 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/master.xml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
 server:
   port: ${SERVER_PORT:8080}
+
+
+app:
+  admin:
+    emails: ${APP_ADMIN_EMAILS:vadimbazhenov74@gmail.com}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  jwt:
+    access-token-ttl-seconds: ${APP_JWT_ACCESS_TOKEN_TTL_SECONDS:900}
+    refresh-token-ttl-seconds: ${APP_JWT_REFRESH_TOKEN_TTL_SECONDS:2592000}
+  kafka:
+    topics:
+      appeal-status-changed: ${KAFKA_TOPIC_APPEAL_STATUS_CHANGED:appeal.status.changed}

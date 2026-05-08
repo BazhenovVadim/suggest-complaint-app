@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -20,8 +21,7 @@ public class AppealResponseDto {
     private ProblemCategory problemCategory;
     private Timeframe timeframe;
     private String description;
-    private String filePath;
-    private String fileName;
+    private List<String> attachments;
     private String contactName;
     private String contactPhone;
     private String contactEmail;
@@ -29,5 +29,5 @@ public class AppealResponseDto {
     private Instant createdAt;
     private AppealStatus status;
     private UUID userId;
-    private Integer appealNumber;
+    private long appealNumber;
 }
