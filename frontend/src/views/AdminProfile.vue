@@ -2,6 +2,13 @@
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
 import api from "../api.js";
 import { useUserStore } from "../stores/user.js";
+import {
+    translate,
+    TYPE_TRANSLATIONS,
+    LOCATION_TRANSLATIONS,
+    CATEGORY_TRANSLATIONS,
+    STATUS_TRANSLATIONS,
+} from "../utils/translations";
 
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
@@ -117,6 +124,11 @@ const filteredAppeals = computed(() => {
     if (!searchQuery.value) return list;
     const q = searchQuery.value.toLowerCase();
     return list.filter((a) => {
+        const typeRu = translate(a.type, TYPE_TRANSLATIONS, "").toLowerCase();
+        const locationRu = translate(a.campusLocation ?? a.location, LOCATION_TRANSLATIONS, "").toLowerCase();
+        const categoryRu = translate(a.problemCategory ?? a.category, CATEGORY_TRANSLATIONS, "").toLowerCase();
+        const statusRu = translate(a.status, STATUS_TRANSLATIONS, "").toLowerCase();
+
         return (
             String(a.appealNumber ?? a.number ?? "")
                 .toLowerCase()
@@ -125,11 +137,12 @@ const filteredAppeals = computed(() => {
             (a.contactName && a.contactName.toLowerCase().includes(q)) ||
             (a.contactEmail && a.contactEmail.toLowerCase().includes(q)) ||
             (a.contactPhone && a.contactPhone.toLowerCase().includes(q)) ||
-            (a.problemCategory &&
-                a.problemCategory.toLowerCase().includes(q)) ||
-            (a.campusLocation && a.campusLocation.toLowerCase().includes(q)) ||
             (a.title && a.title.toLowerCase().includes(q)) ||
-            (a.excerpt && a.excerpt.toLowerCase().includes(q))
+            (a.excerpt && a.excerpt.toLowerCase().includes(q)) ||
+            typeRu.includes(q) ||
+            locationRu.includes(q) ||
+            categoryRu.includes(q) ||
+            statusRu.includes(q)
         );
     });
 });
@@ -209,8 +222,10 @@ watch(searchQuery, () => {
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">{{ userStore.profile.name }}</div>
+                    <div class="name">{{ userStore.profile.firstname + " " + userStore.profile.lastname }}</div>
                     <div class="email">{{ userStore.profile.email }}</div>
+                    <div class="contacts">VK: {{ userStore.profile.vkUserId || "—" }}</div>
+                    <div class="contacts">TG: {{ userStore.profile.telegramUserId || "—" }}</div>
                     <button class="logout" @click="logout">Выйти</button>
                 </div>
             </div>
@@ -315,15 +330,24 @@ watch(searchQuery, () => {
     color: #00ad53;
 }
 
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .user-info .name {
     font-weight: 600;
-    margin-bottom: 4px;
 }
 
 .user-info .email {
     font-size: 13px;
     color: var(--color-font);
-    margin-bottom: 8px;
+}
+
+.user-info .contacts {
+    font-size: 13px;
+    color: var(--color-font);
 }
 
 .logout {

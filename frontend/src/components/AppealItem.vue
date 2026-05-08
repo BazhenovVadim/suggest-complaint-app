@@ -141,6 +141,14 @@
 <script setup>
 import { defineProps, defineEmits, computed, ref } from "vue";
 import api from "../api";
+import {
+    translate,
+    STATUS_TRANSLATIONS,
+    TYPE_TRANSLATIONS,
+    LOCATION_TRANSLATIONS,
+    CATEGORY_TRANSLATIONS,
+    TIMEFRAME_TRANSLATIONS,
+} from "../utils/translations";
 
 import MdiArrowLeft from "~icons/mdi/arrow-left";
 import MdiFlag from "~icons/mdi/flag";
@@ -198,20 +206,22 @@ function updateStatus() {
 const displayNumber = computed(
     () => props.appeal?.appealNumber ?? props.appeal?.number ?? "",
 );
-const displayType = computed(() => {
-    const t = props.appeal?.type ?? "";
-    return t ? String(t) : "";
-});
-const displayCampusLocation = computed(
-    () => props.appeal?.campusLocation ?? props.appeal?.location ?? "",
+const rawType = computed(() => props.appeal?.type ?? "");
+const displayType = computed(() =>
+    translate(rawType.value, TYPE_TRANSLATIONS, rawType.value),
 );
-const displayProblemCategory = computed(
-    () => props.appeal?.problemCategory ?? props.appeal?.category ?? "",
+const rawCampusLocation = computed(() => props.appeal?.campusLocation ?? props.appeal?.location ?? "");
+const displayCampusLocation = computed(() =>
+    translate(rawCampusLocation.value, LOCATION_TRANSLATIONS, rawCampusLocation.value),
 );
-const displayTimeframe = computed(() => {
-    const tf = props.appeal?.timeframe ?? "";
-    return tf ? String(tf) : "";
-});
+const rawProblemCategory = computed(() => props.appeal?.problemCategory ?? props.appeal?.category ?? "");
+const displayProblemCategory = computed(() =>
+    translate(rawProblemCategory.value, CATEGORY_TRANSLATIONS, rawProblemCategory.value),
+);
+const rawTimeframe = computed(() => props.appeal?.timeframe ?? "");
+const displayTimeframe = computed(() =>
+    translate(rawTimeframe.value, TIMEFRAME_TRANSLATIONS, rawTimeframe.value),
+);
 
 const fullDescription = computed(
     () =>
@@ -279,29 +289,27 @@ const statusText = computed(() => {
     const s = rawStatus.value;
     if (s == null) return "";
     if (typeof s === "object" && s.name) return String(s.name);
-    return String(s);
+    return translate(String(s), STATUS_TRANSLATIONS, String(s));
 });
 
 const isStatusNew = computed(() => {
-    const n = statusText.value.toLowerCase();
-    return n.includes("нов") || n.includes("new");
+    const key = String(rawStatus.value).toUpperCase();
+    return key === "NEW";
 });
 
 const isStatusProcessing = computed(() => {
-    const n = statusText.value.toLowerCase();
+    const key = String(rawStatus.value).toUpperCase();
     return (
-        n.includes("рассмотр") ||
-        n.includes("review") ||
-        n.includes("processing") ||
-        n.includes("inprogress") ||
-        n.includes("in_progress") ||
-        n.includes("in progress")
+        key === "IN_PROGRESS" ||
+        key === "INPROGRESS" ||
+        key === "PROCESSING" ||
+        key === "REVIEW"
     );
 });
 
 const isStatusDone = computed(() => {
-    const n = statusText.value.toLowerCase();
-    return n.includes("заверш") || n.includes("done") || n.includes("completed");
+    const key = String(rawStatus.value).toUpperCase();
+    return key === "RESOLVED" || key === "REJECTED" || key === "DONE" || key === "COMPLETED";
 });
 
 const badgeClass = computed(() => {
