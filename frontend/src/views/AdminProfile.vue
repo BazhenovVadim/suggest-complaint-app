@@ -609,24 +609,156 @@ watch(searchQuery, () => {
 }
 
 @media (max-width: 1024px) {
-    .sidebar {
-        display: none;
+    .profile {
+        flex-direction: column;
     }
 
-    .profile {
-        display: block;
+    .sidebar {
+        width: 100%;
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border, #e6e6e6);
     }
+    
+    .brand { margin-bottom: 0; }
+    .logo { max-width: 110px; }
+    .sidebar-spacer { display: none; }
+    .user { gap: 10px; }
+    .avatar { width: 44px; }
+    .user-info { flex-direction: row; align-items: center; gap: 12px; }
+    
+    /* это мю убрать можно есчо */
+    .user-info .name, 
+    .user-info .email, 
+    .user-info .contacts { 
+        display: none; 
+    }
+
 
     .main {
         padding: 16px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden; 
     }
 
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .header-actions .search {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+    
+    .btn-new-appeal {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+        padding: 14px;
+    }
     .tabs {
+        display: flex;
+        width: 100%;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 0;
+        margin-top: 10px;
+        border-bottom: none;
+    }
+    
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tabs::before,
+    .tabs .hoverbar,
+    .tabs .indicator { 
+        display: none !important; 
+    }
+    
+    .tab {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        font-size: 16px; 
+        padding: 12px 18px;
+        border-bottom: 4px solid var(--color-border, #e6e6e6);
+        color: var(--color-text, #222);
+        transition: border-color 0.2s, color 0.2s;
+        background: transparent;
+    }
+    
+    .tab.active {
+        border-bottom-color: var(--color-accent, #2a9d8f);
+        color: var(--color-accent, #2a9d8f);
     }
 
+    .pagination {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .pager {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
     .table-headers {
         display: none;
+    }
+
+    :deep(.appeal-row) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px;
+    }
+    
+    :deep(.appeal-row .col) { width: 100%; }
+    
+    :deep(.appeal-row .status) {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 8px;
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+    }
+    
+    :deep(.appeal-row .btn-outline) {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+    }
+    
+    :deep(.appeal-row .excerpt) {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 8px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 }
 
@@ -637,6 +769,27 @@ watch(searchQuery, () => {
         gap: 12px;
         font-weight: 600;
         padding: 0 18px;
+    }
+}
+</style>
+
+<style>
+@media (max-width: 1024px) {
+    .modal-actions {
+        flex-direction: column !important;
+        width: 100%;
+        gap: 12px !important;
+        margin-top: 16px !important;
+    }
+    .modal-actions > * {
+        width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+    .modal-actions .btn-reject {
+        padding: 14px 16px !important;
+        border-radius: 16px !important;
+        text-align: center !important;
     }
 }
 </style>
