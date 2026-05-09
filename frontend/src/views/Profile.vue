@@ -18,7 +18,7 @@ import AppealModal from "@/components/AppealModal.vue";
 const router = useRouter();
 const userStore = useUserStore();
 
-const activeTab = ref("active");
+const activeTab = ref("active");    
 const tabs = [
     { id: "active", label: "Активные заявки" },
     { id: "completed", label: "Завершенные заявки" },
@@ -374,6 +374,7 @@ watch(searchQuery, () => {
     flex: 1 1 auto;
     padding: 28px 36px;
     box-sizing: border-box;
+    min-width: 0; 
 }
 
 .main-header {
@@ -404,6 +405,7 @@ watch(searchQuery, () => {
     border: 1px solid var(--color-border, #e6e6e6);
     font-family: var(--font-text);
     font-weight: 500;
+    box-sizing: border-box;
 }
 
 .btn-new-appeal {
@@ -420,6 +422,7 @@ watch(searchQuery, () => {
     cursor: pointer;
     white-space: nowrap;
     transition: opacity 0.2s ease;
+    box-sizing: border-box;
 }
 
 .btn-new-appeal:hover {
@@ -457,6 +460,7 @@ watch(searchQuery, () => {
     font-size: 20px;
     color: var(--color-text, #222);
     position: relative;
+    white-space: nowrap;
 }
 
 .tab:hover {
@@ -509,6 +513,7 @@ watch(searchQuery, () => {
 .empty {
     padding: 40px 16px;
     color: var(--color-font);
+    text-align: center;
 }
 
 .appeals {
@@ -549,24 +554,122 @@ watch(searchQuery, () => {
 }
 
 @media (max-width: 1024px) {
-    .sidebar {
-        display: none;
+    .profile {
+        flex-direction: column;
     }
 
-    .profile {
-        display: block;
+    .sidebar {
+        width: 100%;
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border, #e6e6e6);
     }
+    .brand { margin-bottom: 0; }
+    .logo { max-width: 110px; }
+    .sidebar-spacer { display: none; }
+    .user { gap: 10px; }
+    .avatar { width: 44px; }
+    .user-info { flex-direction: row; align-items: center; gap: 12px; }
+    .user-info .name, .user-info .email { display: none; }
+
 
     .main {
         padding: 16px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden; 
+    }
+
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .header-actions .search {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        font-size: 16px; 
+    }
+    .btn-new-appeal {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
     }
 
     .tabs {
-        overflow-x: auto;
+        display: flex;
+        width: 100%;
+        margin-top: 20px;
+    }
+    
+    .tab {
+        flex: 1 1 50%; 
+        text-align: center; 
+        font-size: 14px;
+        padding: 12px 4px;
+        white-space: nowrap;
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+    }
+    .tabs::-webkit-scrollbar {
+        display: none; 
     }
 
+    .pagination {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    .pager {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
     .table-headers {
         display: none;
+    }
+
+    :deep(.appeal-row) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px;
+    }
+    :deep(.appeal-row .col) { width: 100%; }
+    :deep(.appeal-row .status) {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 8px;
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+    }
+    :deep(.appeal-row .btn-outline) {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+    }
+    :deep(.appeal-row .excerpt) {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 8px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 }
 
@@ -579,4 +682,5 @@ watch(searchQuery, () => {
         padding: 0 18px;
     }
 }
+
 </style>
