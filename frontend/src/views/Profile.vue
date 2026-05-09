@@ -13,6 +13,7 @@ import {
 
 import IconMdiAccountCircle from "~icons/mdi/account-circle";
 import AppealItem from "@/components/AppealItem.vue";
+import AppealModal from "@/components/AppealModal.vue";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -171,8 +172,18 @@ const pagerButtons = computed(() => {
 });
 
 function onView(appeal) {
-    console.log("Посмотреть заявку:", appeal);
+    selectedAppeal.value = appeal;
+    isAppealModalOpen.value = true;
+    document.body.style.overflow = "hidden";
 }
+
+function onModalClose() {
+    isAppealModalOpen.value = false;
+    document.body.style.overflow = "";
+}
+
+const selectedAppeal = ref(null);
+const isAppealModalOpen = ref(false);
 
 function onStatusUpdated(updatedAppeal) {
     const index = appeals.value.findIndex(a => a.id === updatedAppeal.id);
@@ -281,6 +292,8 @@ watch(searchQuery, () => {
                 </footer>
             </section>
         </section>
+
+        <AppealModal v-model="isAppealModalOpen" :appeal="selectedAppeal" />
     </main>
 </template>
 
