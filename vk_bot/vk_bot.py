@@ -380,8 +380,8 @@ async def handle_appeal_status_changed_event(event: Dict[str, Any]) -> None:
         return
 
     appeal_number = event.get("appealNumber") or event.get("appeal_number") or event.get("appealId")
-    old_status = AppealState(event.get("oldStatus") or event.get("old_status"))
-    new_status = AppealState(event.get("newStatus") or event.get("new_status"))
+    old_status = AppealStatus(event.get("oldStatus") or event.get("old_status"))
+    new_status = AppealStatus(event.get("newStatus") or event.get("new_status"))
 
     if appeal_number is None:
         appeal_number = "?"
