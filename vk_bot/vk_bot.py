@@ -182,10 +182,10 @@ APPEAL_TYPE_TO_BACKEND = {
 
 # статус обращения
 class AppealStatus(str, Enum):
-    NEW = "NEW"
-    IN_PROGRESS = "IN_PROGRESS"
-    RESOLVED = "RESOLVED"
-    REJECTED = "REJECTED"
+    NEW = "Новое"
+    IN_PROGRESS = "В обработке"
+    RESOLVED = "Решено"
+    REJECTED = "Отклонено"
 
 # класс для аппила 
 # единственное, что мне тут не нравится, что это захардкожено, при любом изменении на бэке надо лезть сюда и всё менять
@@ -380,16 +380,29 @@ async def handle_appeal_status_changed_event(event: Dict[str, Any]) -> None:
         return
 
     appeal_number = event.get("appealNumber") or event.get("appeal_number") or event.get("appealId")
-    old_status = AppealStatus(event.get("oldStatus") or event.get("old_status"))
-    new_status = AppealStatus(event.get("newStatus") or event.get("new_status"))
+        
+    old_status_raw = event.get("oldStatus") or event.get("old_status")
+    new_status_raw = event.get("newStatus") or event.get("new_status")
+
+    # Функция для безопасного перевода системного статуса в русский эквивалент
+    def get_display_status(status_str: Optional[str]) -> Optional[str]:
+        if not status_str:
+            return None
+        try:
+            return AppealStatus[status_str].value
+        except KeyError:
+            return status_str
+
+    old_status = get_display_status(old_status_raw)
+    new_status = get_display_status(new_status_raw)
 
     if appeal_number is None:
         appeal_number = "?"
 
     if old_status and new_status:
-        text = f"Статус вашей заявки №{appeal_number} изменился с {old_status} на {new_status}."
+        text = f"Статус вашей заявки №{appeal_number} изменился с \"{old_status}\" на \"{new_status}\"."
     elif new_status:
-        text = f"Статус вашей заявки №{appeal_number} изменился на {new_status}."
+        text = f"Статус вашей заявки №{appeal_number} изменился на \"{new_status}\"."
     else:
         text = f"Статус вашей заявки №{appeal_number} был обновлен."
 
