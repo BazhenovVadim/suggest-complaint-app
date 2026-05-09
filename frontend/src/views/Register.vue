@@ -92,7 +92,10 @@ const triggerError = (field, msg) => {
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validatePassword = (password) => /^(?=.*[0-9])(?=.*[A-Z]).{8,}$/.test(password);
 const validateName = (name) => /^[а-яА-ЯёЁa-zA-Z\s]+$/.test(name);
-const validatePhone = (phone) => /^\+?[0-9\s()-]{7,20}$/.test(phone);
+ const validatePhone = (phone) => {
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    return /^(?:\+7|8)\d{10}$/.test(cleaned);
+};
 
 const handleSubmit = async () => {
 
