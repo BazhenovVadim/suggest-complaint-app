@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { computed, ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 
 import MdiEye from "~icons/mdi/eye";
@@ -12,8 +12,10 @@ import Button from "@/components/Button.vue";
 const email = ref("");
 const password = ref("");
 const error = ref("");
+const success = ref("");
 const loading = ref(false);
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const isEmailError = ref(false);
@@ -27,14 +29,23 @@ const Icons = {
     eyeOff: MdiEyeOff,
 };
 
+const vkUserId = computed(() => route.query.vkUserId);
+const hasVkBinding = computed(() => Boolean(vkUserId.value));
+const registerRoute = computed(() => ({
+    path: "/register",
+    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+}));
+
 watch(email, () => {
     isEmailError.value = false;
     error.value = "";
+    success.value = "";
 });
 
 watch(password, () => {
     isPasswordError.value = false;
     error.value = "";
+    success.value = "";
 });
 
 const triggerError = (field, msg) => {
@@ -70,9 +81,13 @@ const handleSubmit = async () => {
 
     try {
         await userStore.login({ email: email.value, password: password.value });
+        if (hasVkBinding.value) {
+            await userStore.linkSocialAccount({ vk_user_id: vkUserId.value });
+            success.value = "VK успешно привязан к аккаунту";
+        }
         router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
     } catch (err) {
-        error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
+        error.value = `Ошибка: ${err.response?.data?.message || err.response?.data?.detail || "Неизвестная ошибка"}`;
         isEmailError.value = true;
         isPasswordError.value = true;
         isEmailShaking.value = false;
@@ -97,6 +112,9 @@ const handleSubmit = async () => {
             <router-link to="/" class="back-home">← На главную</router-link>
             <img src="@/assets/prof.jpg" class="logo" />
             <h1>Вход в систему</h1>
+            <p v-if="hasVkBinding" class="link-notice">
+                Войдите в существующий аккаунт, чтобы привязать к нему VK.
+            </p>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
                     <h2>Email</h2>
@@ -117,11 +135,12 @@ const handleSubmit = async () => {
                 </div>
                 <Button type="submit" :disabled="loading">Войти</Button>
             </form>
+            <p v-if="success" class="success-msg">{{ success }}</p>
             <p v-if="error" class="error-msg">{{ error }}</p>
 
             <div class="toggle-login">
                 Нет аккаунта?
-                <router-link to="/register"> Зарегистрироваться </router-link>
+                <router-link :to="registerRoute"> Зарегистрироваться </router-link>
             </div>
         </div>
     </main>
@@ -253,6 +272,17 @@ a:hover {
     color: #d32f2f;
     font-weight: bold;
     text-align: center;
+    margin: 0;
+}
+
+.success-msg,
+.link-notice {
+    color: var(--color-main-inverted);
+    text-align: center;
+}
+
+.link-notice {
+    max-width: 360px;
     margin: 0;
 }
 
