@@ -55,18 +55,25 @@ services:
     networks:
       - app-network
 
-  #  tg-bot:
-  #    build:
-  #      context: ./tg_bot
-  #      dockerfile: Dockerfile
-  #    container_name: suggest-complaint-tg-bot
-  #    depends_on:
-  #      - app
-  #    environment:
-  #      TG_TOKEN: ${TG_TOKEN}
-  #      BACKEND_BASE_URL: http://app:8080
-  #      BACKEND_API_PREFIX: /api
-  #    restart: unless-stopped
+  tg-bot:
+    build:
+      context: ./tg_bot
+      dockerfile: Dockerfile
+    container_name: suggest-complaint-tg-bot
+    depends_on:
+      kafka:
+        condition: service_started
+      app:
+        condition: service_started
+    environment:
+      TG_TOKEN: ${TG_TOKEN}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+      BACKEND_API_PREFIX: ${BACKEND_API_PREFIX}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_APPEAL_STATUS_CHANGED: ${KAFKA_TOPIC_APPEAL_STATUS_CHANGED:-appeal.status.changed}
+    restart: unless-stopped
+    networks:
+      - app-network
 
   postgres:
     image: postgres:16-alpine
