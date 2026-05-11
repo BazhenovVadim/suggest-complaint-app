@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import api from "@/api.js";
 import { useUserStore } from "@/stores/user.js";
 import {
@@ -16,6 +16,7 @@ import AppealItem from "@/components/AppealItem.vue";
 import AppealModal from "@/components/AppealModal.vue";
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const activeTab = ref("active");    
@@ -42,12 +43,21 @@ const hoverLeft = ref(0);
 const hoverWidth = ref(0);
 const isHovering = ref(false);
 
+const showVkSuccess = ref(false);
+
 const tabsStyle = computed(() => ({
     "--indicator-left": activeLeft.value + "px",
     "--indicator-width": activeWidth.value + "px",
     "--hover-left": hoverLeft.value + "px",
     "--hover-width": (isHovering.value ? hoverWidth.value : 0) + "px",
 }));
+
+watch(() => route.query.vkLinked, (newVal) => {
+    if (newVal === 'true') {
+        showVkSuccess.value = true;
+        setTimeout(() => { showVkSuccess.value = false; }, 5000);
+    }
+}, { immediate: true });
 
 function updateIndicator() {
     if (!tabsEl.value) return;
@@ -96,6 +106,15 @@ onMounted(async () => {
     await nextTick();
     updateIndicator();
     window.addEventListener("resize", updateIndicator);
+
+    if (route.query.vkLinked === 'true') {
+        setTimeout(() => {
+            showVkSuccess.value = true;
+            setTimeout(() => {
+                showVkSuccess.value = false;
+            }, 4000);
+        }, 500);
+    }
 });
 
 watch(activeTab, () => {
@@ -239,6 +258,14 @@ watch(searchQuery, () => {
         </aside>
 
         <section class="main">
+            <Transition name="notification">
+                <div v-if="showVkSuccess" class="vk-success-notification">
+                    <div class="notification-content">
+                        <i class="fa-brands fa-vk"></i> 
+                        <span>Аккаунт ВКонтакте успешно привязан!</span>
+                    </div>
+                </div>
+            </Transition>
             <header class="main-header">
                 <h1 class="title">Заявки</h1>
                 <div class="header-actions">
@@ -551,6 +578,49 @@ watch(searchQuery, () => {
 
 .pbtn.active {
     background: var(--color-accent, #cfeee0);
+}
+.vk-success-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%); 
+    z-index: 9999;
+    background: #4c75a3;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    pointer-events: none; 
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.notification-content i {
+    font-size: 20px;
+}
+
+.notification-enter-from {
+    opacity: 0;
+    transform: translate(-50%, -100%); 
+}
+
+
+.notification-enter-active,
+.notification-leave-active {
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+}
+
+.notification-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -100%); 
 }
 
 @media (max-width: 1024px) {

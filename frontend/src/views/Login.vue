@@ -81,11 +81,18 @@ const handleSubmit = async () => {
 
     try {
         await userStore.login({ email: email.value, password: password.value });
+        let linked = false;
         if (hasVkBinding.value) {
             await userStore.linkSocialAccount({ vk_user_id: vkUserId.value });
             success.value = "VK успешно привязан к аккаунту";
+            linked = true;
         }
-        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
+
+        const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
+        router.push({ 
+            path: targetPath, 
+            query: linked ? { vkLinked: 'true' } : {} 
+        });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || err.response?.data?.detail || "Неизвестная ошибка"}`;
         isEmailError.value = true;

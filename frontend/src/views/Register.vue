@@ -177,7 +177,14 @@ const handleSubmit = async () => {
     }
 
     try {
+        loading.value = true;
         await userStore.register(registerData);
+
+        let linked = false;
+        if (hasVkBinding.value) {
+
+            linked = true;
+        }
 
         // Save profile data locally
         // const profileData = {
@@ -190,7 +197,11 @@ const handleSubmit = async () => {
         // };
 
         await userStore.login({ email: email.value, password: password.value });
-        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
+        const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
+        router.push({ 
+            path: targetPath, 
+            query: linked ? { vkLinked: 'true' } : {} 
+        });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
