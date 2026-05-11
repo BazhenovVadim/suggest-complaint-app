@@ -282,8 +282,12 @@ const handleSubmit = async () => {
                     </div>
                 </div>
 
-                <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-
+                <div class="consent-wrapper">
+                    <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
+                    <router-link to="/privacy" class="privacy-link">
+                        (Читать соглашение)
+                    </router-link>
+                </div>
 
                 <Button type="submit" :disabled="loading || !consent">
                     Зарегистрироваться
@@ -478,6 +482,18 @@ a:hover {
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+.consent-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.privacy-link {
+    font-size: 13px;
+    margin-left: 35px; /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
+}
 @keyframes shake {
 
     10%,

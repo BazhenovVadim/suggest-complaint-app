@@ -206,13 +206,20 @@ const handleSubmit = async () => {
                 </div>
             </div>
             <div class="submit">
-                <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
+                <div class="consent-wrapper">
+                    <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
+                    <router-link to="/privacy" class="privacy-link">
+                        (Читать соглашение)
+                    </router-link>
+                </div>
                 <Button :disabled="!consent" @click="handleSubmit">Отправить обращение</Button>
             </div>
             <p v-if="successMessage" class="success-msg">{{ successMessage }}</p>
             <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
-        <footer>Ну футер там и т.д.</footer>
+        <footer class="footer">
+            <router-link to="/privacy" class="footer-link">Политика конфиденциальности</router-link>
+        </footer>
     </main>
 </template>
 
@@ -344,6 +351,19 @@ p.restrictions {
 
 footer {
     margin-top: 35px;
+}
+
+.consent-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.privacy-link {
+    font-size: 13px;
+    margin-left: 35px; /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
 }
 
 @media (min-width: 768px) {
