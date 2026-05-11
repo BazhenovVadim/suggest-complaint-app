@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 
@@ -44,6 +44,14 @@ const Icons = {
     eye: MdiEye,
     eyeOff: MdiEyeOff,
 };
+
+const vkUserId = computed(() => route.query.vkUserId);
+const tgUserId = computed(() => route.query.tgUserId);
+const hasVkBinding = computed(() => Boolean(vkUserId.value));
+const loginRoute = computed(() => ({
+    path: "/login",
+    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+}));
 
 watch(email, () => { isEmailError.value = false; error.value = ""; });
 watch([password, confirmPassword], () => { isPasswordError.value = false; error.value = ""; });
@@ -160,15 +168,12 @@ const handleSubmit = async () => {
         phone: phone.value
     };
 
-    const vkUserId = route.query.vkUserId;
-    const tgUserId = route.query.tgUserId;
-
-    if (vkUserId) {
-        registerData.vk_user_id = vkUserId;
+    if (vkUserId.value) {
+        registerData.vk_user_id = vkUserId.value;
     }
 
-    if (tgUserId) {
-        registerData.telegram_user_id = tgUserId;
+    if (tgUserId.value) {
+        registerData.telegram_user_id = tgUserId.value;
     }
 
     try {
@@ -200,6 +205,9 @@ const handleSubmit = async () => {
             <router-link to="/" class="back-home">← На главную</router-link>
             <img src="@/assets/prof.jpg" class="logo" alt="Логотип" />
             <h1>Регистрация</h1>
+            <p v-if="hasVkBinding" class="link-notice">
+                Зарегистрируйтесь или войдите в существующий аккаунт, чтобы привязать VK.
+            </p>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
                     <h2>Фамилия</h2>
@@ -275,7 +283,7 @@ const handleSubmit = async () => {
 
             <div class="toggle-login">
                 Уже есть аккаунт?
-                <router-link to="/login"> Войти </router-link>
+                <router-link :to="loginRoute"> Войти </router-link>
             </div>
         </div>
     </main>
@@ -432,6 +440,13 @@ a:hover {
     color: #d32f2f;
     font-weight: bold;
     text-align: center;
+    margin: 0;
+}
+
+.link-notice {
+    color: var(--color-main-inverted);
+    text-align: center;
+    max-width: 420px;
     margin: 0;
 }
 

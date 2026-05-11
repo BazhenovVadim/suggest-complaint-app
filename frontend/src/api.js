@@ -138,5 +138,9 @@ export default {
 
   getMe() {
     return api.get('api/user/me')
+  },
+
+  linkSocialAccount(data) {
+    return api.patch('api/user/me/social', data)
   }
 }
