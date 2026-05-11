@@ -44,6 +44,7 @@ const hoverWidth = ref(0);
 const isHovering = ref(false);
 
 const showVkSuccess = ref(false);
+const showTgSuccess = ref(false);
 
 const tabsStyle = computed(() => ({
     "--indicator-left": activeLeft.value + "px",
@@ -113,6 +114,13 @@ onMounted(async () => {
             setTimeout(() => {
                 showVkSuccess.value = false;
             }, 4000);
+        }, 500);
+    }
+
+    if (route.query.tgLinked === 'true') {
+        setTimeout(() => {
+            showTgSuccess.value = true;
+            setTimeout(() => showTgSuccess.value = false, 4000);
         }, 500);
     }
 });
@@ -258,11 +266,19 @@ watch(searchQuery, () => {
         </aside>
 
         <section class="main">
-            <Transition name="notification">
+            <Transition name="notification" appear>
                 <div v-if="showVkSuccess" class="vk-success-notification">
                     <div class="notification-content">
                         <i class="fa-brands fa-vk"></i> 
                         <span>Аккаунт ВКонтакте успешно привязан!</span>
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="notification" appear>
+                <div v-if="showTgSuccess" class="tg-success-notification">
+                    <div class="notification-content">
+                        <i class="fa-brands fa-telegram"></i> 
+                        <span>Аккаунт Telegram успешно привязан!</span>
                     </div>
                 </div>
             </Transition>
@@ -579,21 +595,6 @@ watch(searchQuery, () => {
 .pbtn.active {
     background: var(--color-accent, #cfeee0);
 }
-.vk-success-notification {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%); 
-    z-index: 9999;
-    background: #4c75a3;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    pointer-events: none; 
-}
 
 .notification-content {
     display: flex;
@@ -623,6 +624,37 @@ watch(searchQuery, () => {
     transform: translate(-50%, -100%); 
 }
 
+.vk-success-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%); 
+    z-index: 9999;
+    background: #4c75a3;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    pointer-events: none; 
+}
+
+.tg-success-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background: #2AABEE;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
 @media (max-width: 1024px) {
     .profile {
         flex-direction: column;

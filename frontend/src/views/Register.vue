@@ -48,9 +48,11 @@ const Icons = {
 const vkUserId = computed(() => route.query.vkUserId);
 const tgUserId = computed(() => route.query.tgUserId);
 const hasVkBinding = computed(() => Boolean(vkUserId.value));
+const hasTgBinding = computed(() => Boolean(tgUserId.value));   
 const loginRoute = computed(() => ({
     path: "/login",
-    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {}, 
+    query: hasTgBinding.value ? { tgUserId: tgUserId.value } : {}
 }));
 
 watch(email, () => { isEmailError.value = false; error.value = ""; });
@@ -180,10 +182,15 @@ const handleSubmit = async () => {
         loading.value = true;
         await userStore.register(registerData);
 
-        let linked = false;
-        if (hasVkBinding.value) {
+        let vkLinked = false;
+        let tgLinked = false;
 
-            linked = true;
+        if (hasVkBinding.value) {
+            vkLinked = true;
+        }
+
+        if (tgUserId.value) {
+            tgLinked = true;
         }
 
         // Save profile data locally
@@ -198,10 +205,10 @@ const handleSubmit = async () => {
 
         await userStore.login({ email: email.value, password: password.value });
         const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
-        router.push({ 
-            path: targetPath, 
-            query: linked ? { vkLinked: 'true' } : {} 
-        });
+        router.push({
+                ...(vkLinked ? { vkLinked: 'true' } : {}),
+                ...(tgLinked ? { tgLinked: 'true' } : {})
+            });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
