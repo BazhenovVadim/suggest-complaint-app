@@ -827,8 +827,8 @@ async def send_registration_intro(message: Message):
     text = (
         "Добро пожаловать в модуль «Предложалоба».\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
-        f"Ссылка на регистрацию:\n{registration_url}\n\n"
-        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к Telegram по следующей ссылке:\n{login_url}\n\n"
+        f"Ссылка на регистрацию:\n\n{registration_url}\n\n"
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к Telegram по следующей ссылке:\n\n{login_url}\n\n"
         "После регистрации нажмите «Проверить регистрацию»."
     )
     await message.answer(text, reply_markup=get_registration_kb())
@@ -871,7 +871,7 @@ async def process_registration_check(message: Message, state: FSMContext):
         reg_url = get_registration_url(tg_user_id)
         log_url = get_login_url(tg_user_id)
         await message.answer(
-            f"Регистрация не найдена.\n\nСсылка на регистрацию:\n{reg_url}\n\nИли привяжите аккаунт:\n{log_url}",
+            f"Регистрация не найдена.\n\nСсылка на регистрацию:\n\n{reg_url}\n\nИли привяжите аккаунт:\n\n{log_url}",
             reply_markup=get_registration_kb(),
         )
         return

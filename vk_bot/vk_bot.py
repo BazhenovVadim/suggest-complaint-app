@@ -1999,7 +1999,7 @@ log_event(
     registration_intro_sent_users_count=len(registration_intro_sent_users),
 )
 
-# функции для отправки различных сообщений, связанных с регистрацией, и для управления потоком регистрации и началом процесса подачи жалобы
+# функция для отправки интро
 async def send_registration_intro(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_intro_sent_users.add(vk_user_id)
@@ -2019,8 +2019,8 @@ async def send_registration_intro(message: Message):
     text = (
         "Добро пожаловать в модуль «Предложалоба».\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
-        f"Ссылка на регистрацию:\n{registration_url}\n\n"
-        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{login_url}\n\n" 
+        f"Ссылка на регистрацию:\n\n{registration_url}\n\n"
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n\n{login_url}\n\n" 
         "После регистрации нажмите «Проверить регистрацию»."
         )   
     await send_answer(
