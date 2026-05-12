@@ -20,7 +20,6 @@ public interface AppealMapper {
     @Mapping(target = "appealNumber", ignore = true)
     Appeal toEntity(AppealCreateDto createDto);
 
-    @Mapping(target = "userId", source = "user.id")
     AppealResponseDto toResponseDto(Appeal appeal);
 
     @Mapping(target = "id", ignore = true)
