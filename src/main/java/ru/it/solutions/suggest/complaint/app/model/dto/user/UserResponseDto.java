@@ -22,4 +22,5 @@ public class UserResponseDto {
     private String vkUserId;
     private String telegramUserId;
     private UserRole role;
+    private String phoneNumber;
 }
