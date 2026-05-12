@@ -17,7 +17,6 @@ const routes = [
   { path: "/register", component: Register, meta: { requiresAuth: false } },
   { path: "/profile", component: Profile, meta: { requiresAuth: true } },
   { path: "/admin-profile", component: AdminProfile, meta: { requiresAuth: true, requiresAdmin: true } },
-  { path: "/privacy", component: Privacy, meta: { requiresAuth: false } },
 ];
 
 const router = createRouter({
