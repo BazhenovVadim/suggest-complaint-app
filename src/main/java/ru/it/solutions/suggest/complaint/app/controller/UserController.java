@@ -49,10 +49,13 @@ public class UserController {
         if (currentUser == null) {
             return ResponseEntity.status(401).build();
         }
-        if (request.vkUserId() == null) {
-            return ResponseEntity.badRequest().build();
+        if (request.vkUserId() != null) {
+            return ResponseEntity.ok(userService.linkVkUser(currentUser.getId(), request.vkUserId()));
+        } else if (request.telegramUserId() != null) {
+            return ResponseEntity.ok(userService.linkTgUser(currentUser.getId(), request.telegramUserId()));
+        }else {
+            return ResponseEntity.status(404).build();
         }
-        return ResponseEntity.ok(userService.linkVkUser(currentUser.getId(), request.vkUserId()));
     }
 
     @PatchMapping("/{id}/role")

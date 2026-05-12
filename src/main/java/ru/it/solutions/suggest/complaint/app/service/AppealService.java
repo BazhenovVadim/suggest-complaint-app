@@ -116,6 +116,7 @@ public class AppealService {
                     .appealNumber(updatedAppeal.getAppealNumber())
                     .userId(updatedAppeal.getUser() != null ? updatedAppeal.getUser().getId() : null)
                     .vkUserId(updatedAppeal.getUser() != null ? updatedAppeal.getUser().getVkUserId() : null)
+                    .telegramUserId(updatedAppeal.getUser() != null ? updatedAppeal.getUser().getTelegramUserId() : null)
                     .oldStatus(oldStatus != null ? oldStatus.name() : null)
                     .newStatus(status != null ? status.name() : null)
                     .changedAt(Instant.now())

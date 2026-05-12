@@ -10,4 +10,5 @@
     <include file="db/changelog/003-add-user-fields.xml"/>
     <include file="db/changelog/004-add-user-role.xml"/>
     <include file="db/changelog/005-add-phone-number.xml"/>
+    <include file="db/changelog/006-remove-appeal-fields.xml"/>
 </databaseChangeLog>
