@@ -169,7 +169,7 @@ const handleSubmit = async () => {
         firstName: firstName.value,
         lastName: lastName.value,
         middleName: middleName.value,
-        phone: phone.value
+        phoneNumber: phone.value
     };
 
     if (vkUserId.value) {
@@ -208,8 +208,11 @@ const handleSubmit = async () => {
         await userStore.login({ email: email.value, password: password.value });
         const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
         router.push({
-            ...(vkLinked ? { vkLinked: 'true' } : {}),
-            ...(tgLinked ? { tgLinked: 'true' } : {})
+            path: targetPath, 
+            query: {
+                ...(vkLinked ? { vkLinked: 'true' } : {}),
+                ...(tgLinked ? { tgLinked: 'true' } : {})
+            }
         });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;

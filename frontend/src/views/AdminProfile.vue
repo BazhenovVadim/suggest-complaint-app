@@ -55,13 +55,6 @@ const tabsStyle = computed(() => ({
     "--hover-width": (isHovering.value ? hoverWidth.value : 0) + "px",
 }));
 
-watch(() => route.query.vkLinked, (newVal) => {
-    if (newVal === 'true') {
-        showVkSuccess.value = true;
-        setTimeout(() => { showVkSuccess.value = false; }, 5000);
-    }
-}, { immediate: true });
-
 function updateIndicator() {
     if (!tabsEl.value) return;
     const activeBtn = tabsEl.value.querySelector('.tab.active');
@@ -110,6 +103,9 @@ onMounted(async () => {
     updateIndicator();
     window.addEventListener("resize", updateIndicator);
 
+    let shouldReplaceUrl = false;
+    const newQuery = { ...route.query };
+
     if (route.query.vkLinked === 'true') {
         setTimeout(() => {
             showVkSuccess.value = true;
@@ -117,12 +113,23 @@ onMounted(async () => {
                 showVkSuccess.value = false;
             }, 4000);
         }, 500);
+        
+        delete newQuery.vkLinked;
+        shouldReplaceUrl = true;
     }
+
     if (route.query.tgLinked === 'true') {
         setTimeout(() => {
             showTgSuccess.value = true;
             setTimeout(() => showTgSuccess.value = false, 4000);
         }, 500);
+        
+        delete newQuery.tgLinked;
+        shouldReplaceUrl = true;
+    }
+
+    if (shouldReplaceUrl) {
+        router.replace({ query: newQuery });
     }
 });
 

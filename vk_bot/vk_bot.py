@@ -1521,7 +1521,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
     )
 
     try:
-        # делаем запрос к бэкенду с dr юзер айди и ждём результат. всё ок - тогда узнаём результат и топаем дальше, иначе ошибка
+        # делаем запрос к бэкенду с вк юзер айди 
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.get(
                 url,

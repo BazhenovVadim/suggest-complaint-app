@@ -300,7 +300,7 @@ def get_login_url(tg_user_id: int) -> str:
 
 
 async def handle_appeal_status_changed_event(event: Dict[str, Any]) -> None:
-    tg_user_id = event.get("tgUserId") or event.get("tg_user_id")
+    tg_user_id = event.get("telegramUserId") or event.get("telegram_user_id")
     if tg_user_id is None:
         logger.warning("appeal_status_event_missing_tg_user_id", extra={"event": event})
         return
@@ -599,7 +599,6 @@ async def get_user_profile(tg_user_id: int) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
-
 def parse_registration_payload(
     payload: Any, tg_user_id: Optional[int] = None
 ) -> RegistrationResult:
@@ -609,26 +608,32 @@ def parse_registration_payload(
         )
 
     if isinstance(payload, dict):
-        registered = False
+        explicit_flag = None
+        
         for key in ("exists", "registered", "isRegistered", "success"):
-            parsed = normalize_bool(payload.get(key))
-            if parsed is not None:
-                registered = parsed
-                break
+            if key in payload:
+                parsed = normalize_bool(payload.get(key))
+                if parsed is not None:
+                    explicit_flag = parsed
+                    break
 
         user_data = unwrap_user_data(payload)
-        if not registered and user_data:
-            registered = True
+
+        if explicit_flag is not None:
+            registered = explicit_flag
+        else:
+            registered = bool(user_data and any(k in user_data for k in ("tgUserId", "id", "contactName", "phone", "email")))
 
         if tg_user_id and registered and payload.get("accessToken"):
             access_tokens[tg_user_id] = payload.get("accessToken")
 
         return RegistrationResult(
-            request_ok=True, registered=registered, data=user_data if registered else {}
+            request_ok=True, 
+            registered=registered, 
+            data=user_data if registered else {}
         )
 
     return RegistrationResult(request_ok=True, registered=False, data={})
-
 
 async def check_user_registration(tg_user_id: int) -> RegistrationResult:
     url = api_url("/user/check")
