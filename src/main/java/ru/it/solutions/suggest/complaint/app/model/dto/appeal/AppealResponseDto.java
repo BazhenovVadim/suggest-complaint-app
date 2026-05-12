@@ -22,9 +22,6 @@ public class AppealResponseDto {
     private Timeframe timeframe;
     private String description;
     private List<String> attachments;
-    private String contactName;
-    private String contactPhone;
-    private String contactEmail;
     private Boolean personalDataConsent;
     private Instant createdAt;
     private AppealStatus status;

@@ -69,8 +69,23 @@ public class UserService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Пользователь ВКОНТАКТЕ уже привязан");
             }
         });
-
         user.setVkUserId(vkUserId);
+        return userMapper.toResponseDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponseDto linkTgUser(UUID userId, String tgUserId) {
+        if (tgUserId == null || tgUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан TG ID");
+        }
+
+        UserEntity user = getUserById(userId);
+        userRepository.findByTelegramUserId(tgUserId).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Пользователь телеграм уже привязан");
+            }
+        });
+        user.setTelegramUserId(tgUserId);
         return userMapper.toResponseDto(userRepository.save(user));
     }
 
