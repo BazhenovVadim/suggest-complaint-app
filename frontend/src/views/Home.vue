@@ -12,6 +12,7 @@ import FileUpload from "@/components/FileUpload.vue";
 import Checkbox from "@/components/Checkbox.vue";
 import Toggle from "@/components/Toggle.vue";
 import ProfileMenu from "@/components/ProfileMenu.vue";
+import PrivacyModal from "@/components/PrivacyModal.vue";
 
 const userStore = useUserStore();
 
@@ -68,6 +69,7 @@ const successMessage = ref("");
 const message = ref("");
 const attachments = ref([]);
 const consent = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 watch(selectedLocation, () => {
     errorMessage.value = "";
@@ -206,11 +208,15 @@ const handleSubmit = async () => {
                 </div>
             </div>
             <div class="submit">
-                <div class="consent-wrapper">
+               <div class="consent-wrapper">
                     <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-                    <router-link to="/privacy" class="privacy-link">
+                    <a 
+                        href="/privacy" 
+                        class="privacy-link" 
+                        @click.left.prevent="isPrivacyModalOpen = true"
+                    >
                         (Читать соглашение)
-                    </router-link>
+                    </a>
                 </div>
                 <Button :disabled="!consent" @click="handleSubmit">Отправить обращение</Button>
             </div>
@@ -218,8 +224,15 @@ const handleSubmit = async () => {
             <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
         <footer class="footer">
-            <router-link to="/privacy" class="footer-link">Политика конфиденциальности</router-link>
+            <a 
+                href="/privacy" 
+                class="privacy-link" 
+                @click.left.prevent="isPrivacyModalOpen = true"
+            >
+                Политика конфиденциальности
+            </a>
         </footer>
+        <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
     </main>
 </template>
 
@@ -364,7 +377,17 @@ footer {
 .privacy-link {
     font-size: 13px;
     margin-left: 35px;
+<<<<<<< HEAD
     /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
+=======
+    color: var(--color-accent-second);
+    cursor: pointer; 
+    text-decoration: none;
+}
+
+.privacy-link:hover {
+    text-decoration: underline;
+>>>>>>> 98115674e3e5e82487ea2ba43c615acf7c56ea93
 }
 
 @media (min-width: 768px) {

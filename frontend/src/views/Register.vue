@@ -9,6 +9,7 @@ import MdiEyeOff from "~icons/mdi/eye-off";
 import Input from "@/components/Input.vue";
 import Button from "@/components/Button.vue";
 import Checkbox from "@/components/Checkbox.vue";
+import PrivacyModal from "@/components/PrivacyModal.vue";
 
 const email = ref("");
 const password = ref("");
@@ -39,6 +40,7 @@ const isPhoneError = ref(false);
 const isPhoneShaking = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 const Icons = {
     eye: MdiEye,
@@ -289,12 +291,17 @@ const handleSubmit = async () => {
                     </div>
                 </div>
 
-                <div class="consent-wrapper">
+               <div class="consent-wrapper">
                     <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-                    <router-link to="/privacy" class="privacy-link">
+                    <a 
+                        href="/privacy" 
+                        class="privacy-link" 
+                        @click.left.prevent="isPrivacyModalOpen = true"
+                    >
                         (Читать соглашение)
-                    </router-link>
+                    </a>
                 </div>
+                <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
 
                 <Button type="submit" :disabled="loading || !consent">
                     Зарегистрироваться
@@ -499,7 +506,14 @@ a:hover {
 
 .privacy-link {
     font-size: 13px;
-    margin-left: 35px; /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
+    margin-left: 35px;
+    color: var(--color-accent-second);
+    cursor: pointer; 
+    text-decoration: none;
+}
+
+.privacy-link:hover {
+    text-decoration: underline;
 }
 @keyframes shake {
 
