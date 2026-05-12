@@ -256,7 +256,7 @@ watch(searchQuery, () => {
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">{{ userStore.profile.firstname + " " + userStore.profile.lastname }}</div>
+                    <div class="name">{{ userStore.profile.firstName + " " + userStore.profile.lastName }}</div>
                     <div class="email">{{ userStore.profile.email }}</div>
                     <button class="logout" @click="logout">Выйти</button>
                 </div>

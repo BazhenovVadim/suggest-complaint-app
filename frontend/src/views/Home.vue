@@ -121,7 +121,7 @@ const handleSubmit = async () => {
     try {
         // Get profile data
         const profile = userStore.profile;
-        fullName = profile.firstname + " " + profile.lastname
+        const fullName = profile.firstName + " " + profile.lastName
 
         const appealData = {
             type: selectedType.value,
@@ -133,9 +133,6 @@ const handleSubmit = async () => {
                 selectedType.value === "COMPLAINT" ? selectedCategory.value : "OTHER",
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
-            contactName: profile.fullName || '',
-            contactPhone: profile.phone || '',
-            contactEmail: profile.email || '',
             personalDataConsent: consent.value,
         };
 

@@ -51,13 +51,13 @@ const fullDescription = computed(
 );
 
 const displayContactName = computed(
-    () => props.appeal?.contactName ?? "",
+    () => props.appeal?.user?.firstName + " " + props.appeal?.user?.lastName ?? "",
 );
 const displayContactPhone = computed(
-    () => props.appeal?.contactPhone ?? "",
+    () => props.appeal?.user?.contactPhone ?? "",
 );
 const displayContactEmail = computed(
-    () => props.appeal?.contactEmail ?? "",
+    () => props.appeal?.user?.email ?? "",
 );
 
 const created = computed(() => props.appeal?.createdAt ?? null);

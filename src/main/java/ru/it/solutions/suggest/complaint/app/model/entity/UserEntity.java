@@ -49,7 +49,7 @@ public class UserEntity {
     @Column(name = "firstname", length = 100)
     private String firstName;
 
-    @Column(name = "middlename", length = 100)
+    @Column(name = "middleName", length = 100)
     private String middleName;
 
     @Column(name = "lastname", length = 100)
@@ -57,7 +57,6 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user")
     private List<Appeal> appeals;
-
 
     private UserEntity(UUID id, String email, String passwordHash) {
         this.id = id;
@@ -90,8 +89,10 @@ public class UserEntity {
     }
 
     public boolean verifyResetToken(String tokenHash, Instant now) {
-        if (resetTokenHash == null || resetTokenExpiry == null) return false;
-        if (now.isAfter(resetTokenExpiry)) return false;
+        if (resetTokenHash == null || resetTokenExpiry == null)
+            return false;
+        if (now.isAfter(resetTokenExpiry))
+            return false;
         boolean ok = resetTokenHash.equals(tokenHash);
         if (ok) {
             // consume token (single-use)

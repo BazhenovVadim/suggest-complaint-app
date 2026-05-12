@@ -163,9 +163,6 @@ const filteredAppeals = computed(() => {
                 .toLowerCase()
                 .includes(q) ||
             (a.description && a.description.toLowerCase().includes(q)) ||
-            (a.contactName && a.contactName.toLowerCase().includes(q)) ||
-            (a.contactEmail && a.contactEmail.toLowerCase().includes(q)) ||
-            (a.contactPhone && a.contactPhone.toLowerCase().includes(q)) ||
             (a.title && a.title.toLowerCase().includes(q)) ||
             (a.excerpt && a.excerpt.toLowerCase().includes(q)) ||
             typeRu.includes(q) ||
@@ -308,7 +305,7 @@ watch(searchQuery, () => {
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">{{ userStore.profile.firstname + " " + userStore.profile.lastname }}</div>
+                    <div class="name">{{ userStore.profile.firstName + " " + userStore.profile.lastName }}</div>
                     <div class="email">{{ userStore.profile.email }}</div>
                     <div class="contacts">VK: {{ userStore.profile.vkUserId || "—" }}</div>
                     <div class="contacts">TG: {{ userStore.profile.telegramUserId || "—" }}</div>
