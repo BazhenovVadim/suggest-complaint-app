@@ -12,9 +12,9 @@ public record RegisterRequest(
         @JsonProperty("telegram_user_id")
         @JsonAlias("telegramUserId")
         String telegramUserId,
-        String firstname,
-        String middlename,
-        String lastname,
+        String firstName,
+        String middleName,
+        String lastName,
         String phoneNumber
 ) {
 }

@@ -16,10 +16,9 @@ public class UserResponseDto {
     private UUID id;
     private String email;
     private boolean confirmed;
-    private String fullName;
-    private String firstname;
-    private String middlename;
-    private String lastname;
+    private String firstName;
+    private String middleName;
+    private String lastName;
     private String vkUserId;
     private String telegramUserId;
     private UserRole role;

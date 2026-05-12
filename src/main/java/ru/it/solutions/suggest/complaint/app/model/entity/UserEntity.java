@@ -47,13 +47,13 @@ public class UserEntity {
     private Instant refreshTokenExpiry;
 
     @Column(name = "firstname", length = 100)
-    private String firstname;
+    private String firstName;
 
     @Column(name = "middlename", length = 100)
-    private String middlename;
+    private String middleName;
 
     @Column(name = "lastname", length = 100)
-    private String lastname;
+    private String lastName;
 
     @OneToMany(mappedBy = "user")
     private List<Appeal> appeals;
