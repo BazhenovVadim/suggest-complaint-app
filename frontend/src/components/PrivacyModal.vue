@@ -37,11 +37,11 @@ onUnmounted(() => {
                         <h2>Согласие на обработку персональных данных</h2>
                         <button class="close-btn" @click="closeModal">✕</button>
                     </div>
-                    
+
                     <div class="modal-body">
                         <PrivacyContent />
                     </div>
-                    
+
                     <div class="modal-footer">
                         <button class="accept-btn" @click="closeModal">Понятно</button>
                     </div>
@@ -52,11 +52,11 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-
 .modal-body {
-    padding: 20px;
+    padding: 15px 25px 25px 25px;
     overflow-y: auto;
 }
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -87,14 +87,14 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 20px 30px;
     border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h2 {
     margin: 0;
     font-family: var(--font-header);
-    font-size: 22px;
+    font-size: 18px;
     color: var(--color-main-inverted);
 }
 
@@ -106,11 +106,12 @@ onUnmounted(() => {
     color: var(--color-font);
     opacity: 0.6;
     transition: opacity 0.2s;
+    padding: 7px;
 }
 
 .close-btn:hover {
     opacity: 1;
-}   
+}
 
 .privacy-text p {
     margin-bottom: 15px;
@@ -124,18 +125,19 @@ onUnmounted(() => {
 }
 
 .accept-btn {
-    background: var(--color-accent-second, #4caf50);
+    background: var(--color-accent, #4caf50);
     color: white;
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
+    font-family: var(--font-text);
     font-size: 16px;
-    transition: filter 0.2s;
+    transition: background 0.2s;
 }
 
 .accept-btn:hover {
-    filter: brightness(0.9);
+    background: var(--color-accent-second);
 }
 
 .modal-enter-active,
@@ -156,5 +158,11 @@ onUnmounted(() => {
 .modal-enter-from .modal-content,
 .modal-leave-to .modal-content {
     transform: translateY(-20px);
+}
+
+@media (min-width: 768px) {
+    .modal-header h2 {
+        font-size: 24px;
+    }
 }
 </style>

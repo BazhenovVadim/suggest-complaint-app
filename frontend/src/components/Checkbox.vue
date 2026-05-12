@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from "vue";
+
 const props = defineProps({
     modelValue: Boolean,
     label: String,
@@ -9,17 +11,20 @@ const emit = defineEmits(["update:modelValue"]);
 const handleChange = (event) => {
     emit("update:modelValue", event.target.checked);
 };
+
+const inputId = computed(() =>
+    props.label
+        ? "cb-" + props.label.replace(/[^a-zA-Z0-9]/g, "-")
+        : "cb-default",
+);
 </script>
 
 <template>
     <div class="consent">
-        <input
-            type="checkbox"
-            :id="label"
-            :checked="modelValue"
-            @change="handleChange"
-        />
-        <label :for="label">{{ label }}</label>
+        <input type="checkbox" :id="inputId" :checked="modelValue" @change="handleChange" />
+        <label :for="inputId">
+            <slot>{{ label }}</slot>
+        </label>
     </div>
 </template>
 

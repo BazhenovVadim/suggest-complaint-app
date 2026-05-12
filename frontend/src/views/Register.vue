@@ -208,7 +208,7 @@ const handleSubmit = async () => {
         await userStore.login({ email: email.value, password: password.value });
         const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
         router.push({
-            path: targetPath, 
+            path: targetPath,
             query: {
                 ...(vkLinked ? { vkLinked: 'true' } : {}),
                 ...(tgLinked ? { tgLinked: 'true' } : {})
@@ -295,10 +295,12 @@ const handleSubmit = async () => {
                 </div>
 
                 <div class="consent-wrapper">
-                    <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-                    <a href="/privacy" class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
-                        (Читать соглашение)
-                    </a>
+                    <Checkbox v-model="consent">
+                        Я согласен на обработку
+                        <a class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
+                            персональных данных
+                        </a>
+                    </Checkbox>
                 </div>
                 <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
 
@@ -504,11 +506,10 @@ a:hover {
 }
 
 .privacy-link {
-    font-size: 13px;
-    margin-left: 35px;
-    color: var(--color-accent-second);
+    font-size: inherit;
     cursor: pointer;
     text-decoration: none;
+    color: var(--color-accent);
 }
 
 .privacy-link:hover {
