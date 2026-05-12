@@ -9,6 +9,7 @@ import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import Profile from "@/views/Profile.vue";
 import AdminProfile from "@/views/AdminProfile.vue";
+import Privacy from "@/views/Privacy.vue";
 
 const routes = [
   { path: "/", component: Home, meta: { requiresAuth: false } },
@@ -16,6 +17,7 @@ const routes = [
   { path: "/register", component: Register, meta: { requiresAuth: false } },
   { path: "/profile", component: Profile, meta: { requiresAuth: true } },
   { path: "/admin-profile", component: AdminProfile, meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: "/privacy", component: Privacy, meta: { requiresAuth: false } },
 ];
 
 const router = createRouter({

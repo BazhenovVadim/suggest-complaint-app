@@ -9,6 +9,7 @@ import MdiEyeOff from "~icons/mdi/eye-off";
 import Input from "@/components/Input.vue";
 import Button from "@/components/Button.vue";
 import Checkbox from "@/components/Checkbox.vue";
+import PrivacyModal from "@/components/PrivacyModal.vue";
 
 const email = ref("");
 const password = ref("");
@@ -39,6 +40,7 @@ const isPhoneError = ref(false);
 const isPhoneShaking = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 const Icons = {
     eye: MdiEye,
@@ -48,9 +50,11 @@ const Icons = {
 const vkUserId = computed(() => route.query.vkUserId);
 const tgUserId = computed(() => route.query.tgUserId);
 const hasVkBinding = computed(() => Boolean(vkUserId.value));
+const hasTgBinding = computed(() => Boolean(tgUserId.value));   
 const loginRoute = computed(() => ({
     path: "/login",
-    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {}, 
+    query: hasTgBinding.value ? { tgUserId: tgUserId.value } : {}
 }));
 
 watch(email, () => { isEmailError.value = false; error.value = ""; });
@@ -177,7 +181,19 @@ const handleSubmit = async () => {
     }
 
     try {
+        loading.value = true;
         await userStore.register(registerData);
+
+        let vkLinked = false;
+        let tgLinked = false;
+
+        if (hasVkBinding.value) {
+            vkLinked = true;
+        }
+
+        if (tgUserId.value) {
+            tgLinked = true;
+        }
 
         // Save profile data locally
         // const profileData = {
@@ -190,7 +206,11 @@ const handleSubmit = async () => {
         // };
 
         await userStore.login({ email: email.value, password: password.value });
-        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
+        const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
+        router.push({
+                ...(vkLinked ? { vkLinked: 'true' } : {}),
+                ...(tgLinked ? { tgLinked: 'true' } : {})
+            });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
@@ -271,8 +291,17 @@ const handleSubmit = async () => {
                     </div>
                 </div>
 
-                <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-
+               <div class="consent-wrapper">
+                    <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
+                    <a 
+                        href="/privacy" 
+                        class="privacy-link" 
+                        @click.left.prevent="isPrivacyModalOpen = true"
+                    >
+                        (Читать соглашение)
+                    </a>
+                </div>
+                <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
 
                 <Button type="submit" :disabled="loading || !consent">
                     Зарегистрироваться
@@ -467,6 +496,25 @@ a:hover {
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+.consent-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.privacy-link {
+    font-size: 13px;
+    margin-left: 35px;
+    color: var(--color-accent-second);
+    cursor: pointer; 
+    text-decoration: none;
+}
+
+.privacy-link:hover {
+    text-decoration: underline;
+}
 @keyframes shake {
 
     10%,

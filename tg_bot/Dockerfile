@@ -1,5 +1,6 @@
 FROM python:3.12-slim
 
+
 WORKDIR /bot
 
 COPY tg_bot.py /bot/tg_bot.py

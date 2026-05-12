@@ -31,9 +31,14 @@ const Icons = {
 
 const vkUserId = computed(() => route.query.vkUserId);
 const hasVkBinding = computed(() => Boolean(vkUserId.value));
+
+const tgUserId = computed(() => route.query.tgUserId);
+const hasTgBinding = computed(() => Boolean(tgUserId.value));
+
 const registerRoute = computed(() => ({
     path: "/register",
     query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+    query: hasTgBinding.value ? { tgUserId: tgUserId.value } : {}
 }));
 
 watch(email, () => {
@@ -81,11 +86,28 @@ const handleSubmit = async () => {
 
     try {
         await userStore.login({ email: email.value, password: password.value });
+
+        let vkLinked = false;
+        let tgLinked = false;
+
         if (hasVkBinding.value) {
             await userStore.linkSocialAccount({ vk_user_id: vkUserId.value });
-            success.value = "VK успешно привязан к аккаунту";
+            vkLinked = true;
         }
-        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
+
+        if (hasTgBinding.value) {
+            await userStore.linkSocialAccount({ telegram_user_id: tgUserId.value }); 
+            tgLinked = true;
+        }
+
+        const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
+        router.push({ 
+            path: targetPath, 
+            query: {
+                ...(vkLinked ? { vkLinked: 'true' } : {}),
+                ...(tgLinked ? { tgLinked: 'true' } : {})
+            }
+        });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || err.response?.data?.detail || "Неизвестная ошибка"}`;
         isEmailError.value = true;

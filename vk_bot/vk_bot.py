@@ -294,6 +294,7 @@ def build_api_base_url() -> str:
 API_BASE_URL = build_api_base_url()
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:5173").rstrip("/")
 REGISTRATION_PATH = os.getenv("REGISTRATION_PATH", "/register")
+LOGIN_PATH = os.getenv("LOGIN_PATH", "/login")
 
 # формат для отправки енум в бэкенд
 APPEAL_ENUM_FORMAT = os.getenv("APPEAL_ENUM_FORMAT", "name").strip().lower()
@@ -384,7 +385,6 @@ async def handle_appeal_status_changed_event(event: Dict[str, Any]) -> None:
     old_status_raw = event.get("oldStatus") or event.get("old_status")
     new_status_raw = event.get("newStatus") or event.get("new_status")
 
-    # Функция для безопасного перевода системного статуса в русский эквивалент
     def get_display_status(status_str: Optional[str]) -> Optional[str]:
         if not status_str:
             return None
@@ -924,6 +924,21 @@ def get_registration_url(vk_user_id: int) -> str:
         "registration_url_created",
         vk_user_id=vk_user_id,
         registration_url=result if LOG_SENSITIVE_DATA else site_url(REGISTRATION_PATH),
+    )
+
+    return result
+
+def get_login_url(vk_user_id: int) -> str:
+    result = add_query_params(
+        site_url(LOGIN_PATH),
+        {"vkUserId": vk_user_id},
+    )
+
+    log_event(
+        logging.INFO,
+        "login_url_created",
+        vk_user_id=vk_user_id,
+        login_url=result if LOG_SENSITIVE_DATA else site_url(LOGIN_PATH),
     )
 
     return result
@@ -1990,6 +2005,7 @@ async def send_registration_intro(message: Message):
     registration_intro_sent_users.add(vk_user_id)
 
     registration_url = get_registration_url(vk_user_id)
+    login_url = get_login_url(vk_user_id)
 
     log_event(
         logging.INFO,
@@ -2004,10 +2020,9 @@ async def send_registration_intro(message: Message):
         "Добро пожаловать в модуль «Предложалоба».\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
         f"Ссылка на регистрацию:\n{registration_url}\n\n"
-        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{"<<ЗАГЛУШКА>>"}\n\n" 
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{login_url}\n\n" 
         "После регистрации нажмите «Проверить регистрацию»."
         )   
-    # TODO: прикрутить реальную ссылку для привязки учетной записи после реализации этого функционала на бэкенде
     await send_answer(
         message,
         text,
@@ -2019,6 +2034,7 @@ async def send_registration_intro(message: Message):
 async def send_registration_required(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_url = get_registration_url(vk_user_id)
+    login_url = get_login_url(vk_user_id)
 
     log_event(
         logging.INFO,
@@ -2032,7 +2048,7 @@ async def send_registration_required(message: Message):
         "Регистрация не найдена.\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
         f"Ссылка на регистрацию:\n{registration_url}\n\n"
-        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{"<<ЗАГЛУШКА>>"}\n\n" 
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{login_url}\n\n" 
         "После регистрации нажмите «Проверить регистрацию»."
     )
 
