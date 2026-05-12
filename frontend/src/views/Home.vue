@@ -118,8 +118,8 @@ const handleSubmit = async () => {
 
     try {
         // Get profile data
-        const profileData = localStorage.getItem('userProfile');
-        const profile = profileData ? JSON.parse(profileData) : {};
+        const profile = userStore.profile;
+        fullName = profile.firstname + " " + profile.lastname
 
         const appealData = {
             type: selectedType.value,
@@ -363,7 +363,8 @@ footer {
 
 .privacy-link {
     font-size: 13px;
-    margin-left: 35px; /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
+    margin-left: 35px;
+    /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
 }
 
 @media (min-width: 768px) {

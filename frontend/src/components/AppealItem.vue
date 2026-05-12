@@ -147,7 +147,7 @@ const badgeClass = computed(() => {
                 <span class="flag" aria-hidden>⚑</span>
                 <span class="type-label">{{ displayType }}</span>
             </div>
-            <div class="location">{{ displayCampusLocation }}</div>
+            <div class="location" v-if="rawType === 'COMPLAINT'">{{ displayCampusLocation }}</div>
         </div>
 
         <div class="col category">
@@ -223,7 +223,7 @@ const badgeClass = computed(() => {
 }
 
 .cat-title {
-    font-weight: 700;
+    font-weight: 600;
     font-size: 15px;
     overflow: hidden;
     text-overflow: ellipsis;

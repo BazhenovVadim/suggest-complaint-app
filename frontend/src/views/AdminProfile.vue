@@ -111,7 +111,7 @@ onMounted(async () => {
     window.addEventListener("resize", updateIndicator);
 
     if (route.query.vkLinked === 'true') {
-       setTimeout(() => {
+        setTimeout(() => {
             showVkSuccess.value = true;
             setTimeout(() => {
                 showVkSuccess.value = false;
@@ -302,7 +302,7 @@ watch(searchQuery, () => {
     <main class="profile">
         <aside class="sidebar" aria-label="Профиль">
             <div class="brand">
-                <img src="@/assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof_profile.jpg" class="logo" />
             </div>
 
             <div class="user">
@@ -323,7 +323,7 @@ watch(searchQuery, () => {
             <Transition name="notification" appear>
                 <div v-if="showVkSuccess" class="vk-success-notification">
                     <div class="notification-content">
-                        <i class="fa-brands fa-vk"></i> 
+                        <i class="fa-brands fa-vk"></i>
                         <span>Аккаунт ВКонтакте успешно привязан!</span>
                     </div>
                 </div>
@@ -331,7 +331,7 @@ watch(searchQuery, () => {
             <Transition name="notification" appear>
                 <div v-if="showTgSuccess" class="tg-success-notification">
                     <div class="notification-content">
-                        <i class="fa-brands fa-telegram"></i> 
+                        <i class="fa-brands fa-telegram"></i>
                         <span>Аккаунт Telegram успешно привязан!</span>
                     </div>
                 </div>
@@ -674,16 +674,16 @@ watch(searchQuery, () => {
 
 .notification-leave-to {
     opacity: 0;
-    transform: translate(-50%, -100%); 
+    transform: translate(-50%, -100%);
 }
 
 .vk-success-notification {
     position: fixed;
     top: 20px;
     left: 50%;
-    transform: translateX(-50%); 
+    transform: translateX(-50%);
     z-index: 9999;
-    background: #4c75a3; 
+    background: #4c75a3;
     color: white;
     padding: 12px 24px;
     border-radius: 12px;
@@ -699,7 +699,7 @@ watch(searchQuery, () => {
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
-    background: #2AABEE; /* Фирменный цвет Telegram */
+    background: #2AABEE;
     color: white;
     padding: 12px 24px;
     border-radius: 12px;
@@ -724,19 +724,38 @@ watch(searchQuery, () => {
         border-right: none;
         border-bottom: 1px solid var(--color-border, #e6e6e6);
     }
-    
-    .brand { margin-bottom: 0; }
-    .logo { max-width: 110px; }
-    .sidebar-spacer { display: none; }
-    .user { gap: 10px; }
-    .avatar { width: 44px; }
-    .user-info { flex-direction: row; align-items: center; gap: 12px; }
-    
+
+    .brand {
+        margin-bottom: 0;
+    }
+
+    .logo {
+        max-width: 110px;
+    }
+
+    .sidebar-spacer {
+        display: none;
+    }
+
+    .user {
+        gap: 10px;
+    }
+
+    .avatar {
+        width: 44px;
+    }
+
+    .user-info {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
     /* это мю убрать можно есчо */
-    .user-info .name, 
-    .user-info .email, 
-    .user-info .contacts { 
-        display: none; 
+    .user-info .name,
+    .user-info .email,
+    .user-info .contacts {
+        display: none;
     }
 
 
@@ -745,7 +764,7 @@ watch(searchQuery, () => {
         width: 100%;
         max-width: 100vw;
         box-sizing: border-box;
-        overflow-x: hidden; 
+        overflow-x: hidden;
     }
 
 
@@ -754,26 +773,27 @@ watch(searchQuery, () => {
         align-items: flex-start;
         gap: 16px;
     }
-    
+
     .header-actions {
         width: 100%;
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .header-actions .search {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
         font-size: 16px;
     }
-    
+
     .btn-new-appeal {
         width: 100%;
         text-align: center;
         box-sizing: border-box;
         padding: 14px;
     }
+
     .tabs {
         display: flex;
         width: 100%;
@@ -784,28 +804,28 @@ watch(searchQuery, () => {
         margin-top: 10px;
         border-bottom: none;
     }
-    
+
     .tabs::-webkit-scrollbar {
         display: none;
     }
-    
+
     .tabs::before,
     .tabs .hoverbar,
-    .tabs .indicator { 
-        display: none !important; 
+    .tabs .indicator {
+        display: none !important;
     }
-    
+
     .tab {
         flex: 0 0 auto;
         white-space: nowrap;
-        font-size: 16px; 
+        font-size: 16px;
         padding: 12px 18px;
         border-bottom: 4px solid var(--color-border, #e6e6e6);
         color: var(--color-text, #222);
         transition: border-color 0.2s, color 0.2s;
         background: transparent;
     }
-    
+
     .tab.active {
         border-bottom-color: var(--color-accent, #2a9d8f);
         color: var(--color-accent, #2a9d8f);
@@ -816,12 +836,12 @@ watch(searchQuery, () => {
         gap: 16px;
         text-align: center;
     }
-    
+
     .pager {
         flex-wrap: wrap;
         justify-content: center;
     }
-    
+
     .table-headers {
         display: none;
     }
@@ -834,9 +854,11 @@ watch(searchQuery, () => {
         box-sizing: border-box;
         padding: 16px;
     }
-    
-    :deep(.appeal-row .col) { width: 100%; }
-    
+
+    :deep(.appeal-row .col) {
+        width: 100%;
+    }
+
     :deep(.appeal-row .status) {
         flex-direction: column;
         gap: 12px;
@@ -845,18 +867,19 @@ watch(searchQuery, () => {
         border-top: 1px solid #eee;
         padding-top: 12px;
     }
-    
+
     :deep(.appeal-row .btn-outline) {
         width: 100%;
         text-align: center;
         padding: 12px;
     }
-    
+
     :deep(.appeal-row .excerpt) {
         background: #f9f9f9;
         padding: 10px;
         border-radius: 8px;
         display: -webkit-box;
+        line-clamp: 3;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
@@ -882,11 +905,13 @@ watch(searchQuery, () => {
         gap: 12px !important;
         margin-top: 16px !important;
     }
-    .modal-actions > * {
+
+    .modal-actions>* {
         width: 100% !important;
         margin: 0 !important;
         box-sizing: border-box !important;
     }
+
     .modal-actions .btn-reject {
         padding: 14px 16px !important;
         border-radius: 16px !important;
