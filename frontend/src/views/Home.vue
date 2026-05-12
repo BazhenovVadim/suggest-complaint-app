@@ -208,13 +208,9 @@ const handleSubmit = async () => {
                 </div>
             </div>
             <div class="submit">
-               <div class="consent-wrapper">
+                <div class="consent-wrapper">
                     <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-                    <a 
-                        href="/privacy" 
-                        class="privacy-link" 
-                        @click.left.prevent="isPrivacyModalOpen = true"
-                    >
+                    <a href="/privacy" class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
                         (Читать соглашение)
                     </a>
                 </div>
@@ -224,11 +220,7 @@ const handleSubmit = async () => {
             <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
         <footer class="footer">
-            <a 
-                href="/privacy" 
-                class="privacy-link" 
-                @click.left.prevent="isPrivacyModalOpen = true"
-            >
+            <a href="/privacy" class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
                 Политика конфиденциальности
             </a>
         </footer>
@@ -377,17 +369,13 @@ footer {
 .privacy-link {
     font-size: 13px;
     margin-left: 35px;
-<<<<<<< HEAD
-    /* Отступ, чтобы выровнять текст ссылки под текстом чекбокса, подстрой по дизайну */
-=======
     color: var(--color-accent-second);
-    cursor: pointer; 
+    cursor: pointer;
     text-decoration: none;
 }
 
 .privacy-link:hover {
     text-decoration: underline;
->>>>>>> 98115674e3e5e82487ea2ba43c615acf7c56ea93
 }
 
 @media (min-width: 768px) {
