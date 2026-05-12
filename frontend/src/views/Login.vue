@@ -137,6 +137,9 @@ const handleSubmit = async () => {
             <p v-if="hasVkBinding" class="link-notice">
                 Войдите в существующий аккаунт, чтобы привязать к нему VK.
             </p>
+            <p v-if="hasTgBinding" class="link-notice">
+                Войдите в существующий аккаунт, чтобы привязать к нему Telegram.
+            </p>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
                     <h2>Email</h2>
