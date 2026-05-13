@@ -16,6 +16,7 @@ import ru.it.solutions.suggest.complaint.app.repository.UserRepository;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -33,6 +34,10 @@ public class UserService {
                 new UsernameNotFoundException("Пользователь не найден")));
     }
 
+    public Optional<UserResponseDto> findByVkUserId(String vkUserId) {
+        return userRepository.findByVkUserId(vkUserId).map(userMapper::toResponseDto);
+    }
+
     public UserResponseDto findUserId(UUID Id){
         return userMapper.toResponseDto(userRepository.findById(Id).orElseThrow(() ->
                 new UsernameNotFoundException("Пользователь не найден")));
@@ -46,6 +51,42 @@ public class UserService {
     public UserResponseDto existsByTelegramUserId(String telegramUserId) {
         return userMapper.toResponseDto(userRepository.findByTelegramUserId(telegramUserId).orElseThrow(() ->
                 new UsernameNotFoundException("Пользователь не найден")));
+    }
+
+    public Optional<UserResponseDto> findByTelegramUserId(String telegramUserId) {
+        return userRepository.findByTelegramUserId(telegramUserId).map(userMapper::toResponseDto);
+    }
+
+    @Transactional
+    public UserResponseDto linkVkUser(UUID userId, String vkUserId) {
+        if (vkUserId == null || vkUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан VK ID");
+        }
+
+        UserEntity user = getUserById(userId);
+        userRepository.findByVkUserId(vkUserId).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Пользователь ВКОНТАКТЕ уже привязан");
+            }
+        });
+        user.setVkUserId(vkUserId);
+        return userMapper.toResponseDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponseDto linkTgUser(UUID userId, String tgUserId) {
+        if (tgUserId == null || tgUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не передан TG ID");
+        }
+
+        UserEntity user = getUserById(userId);
+        userRepository.findByTelegramUserId(tgUserId).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Пользователь телеграм уже привязан");
+            }
+        });
+        user.setTelegramUserId(tgUserId);
+        return userMapper.toResponseDto(userRepository.save(user));
     }
 
     @Transactional

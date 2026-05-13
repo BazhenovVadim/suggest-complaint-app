@@ -3,6 +3,8 @@ import base64
 import json
 import logging
 import os
+import random
+from aiokafka import AIOKafkaConsumer
 from datetime import datetime
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -17,12 +19,13 @@ from dotenv import load_dotenv
 from vkbottle.bot import Bot, Message
 from vkbottle import Keyboard, KeyboardButtonColor, Text, BaseStateGroup
 
-
-# --- настройки логирования ---
+# -------------------
+# --- логирование ---
+# -------------------
 
 load_dotenv()
 
-
+# обработка логических переменных окружения в разных форматах 
 def env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
 
@@ -31,10 +34,10 @@ def env_bool(name: str, default: bool = False) -> bool:
 
     return value.strip().lower() in {"1", "true", "yes", "y", "да"}
 
-
+# настройки логирования
 LOG_LEVEL_NAME = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FILE = os.getenv("LOG_FILE", "").strip()
-LOG_SENSITIVE_DATA = env_bool("LOG_SENSITIVE_DATA", False)
+LOG_SENSITIVE_DATA = env_bool("LOG_SENSITIVE_DATA", True)
 LOG_HTTP_BODIES = env_bool("LOG_HTTP_BODIES", False)
 LOG_ERROR_HTTP_BODIES = env_bool("LOG_ERROR_HTTP_BODIES", True)
 
@@ -87,13 +90,14 @@ logger.info(
 
 # --- модели данных ---
 
+# тип обращения
 class AppealType(str, Enum):
     COMPLAINT = "Жалоба"
     SUGGESTION = "Предложение"
     QUESTION = "Вопрос"
     REQUEST = "Запрос"
 
-
+# локация проблемы
 class LocationType(str, Enum):
     STUDENT_CAMPUS = "Студгородок"
     DORMITORY = "Общежитие"
@@ -103,7 +107,7 @@ class LocationType(str, Enum):
     SPORTS_COMPLEX = "Спорткомплекс"
     MEDICAL_CENTER = "Медпункт"
 
-
+# преобразование локации для бэкенда 
 LOCATION_TYPE_TO_BACKEND = {
     LocationType.STUDENT_CAMPUS: "STUDENT_CAMPUS",
     LocationType.DORMITORY: "DORMITORY",
@@ -114,7 +118,7 @@ LOCATION_TYPE_TO_BACKEND = {
     LocationType.MEDICAL_CENTER: "MEDICAL_CENTER",
 }
 
-
+# категория проблемы
 class ProblemCategory(str, Enum):
     ACCOMMODATION = "Расселение"
     BATHROOM = "Санузел"
@@ -127,7 +131,13 @@ class ProblemCategory(str, Enum):
     INTERNET = "Интернет"
     OTHER = "Другое"
 
+class AppealStatus(str, Enum):
+    NEW = "Новое"
+    IN_PROGRESS = "В обработке"
+    RESOLVED = "Решено"
+    REJECTED = "Отклонено"
 
+# преобразование категории проблемы для бэкенда
 PROBLEM_CATEGORY_TO_BACKEND = {
     ProblemCategory.ACCOMMODATION: "ACCOMMODATION",
     ProblemCategory.BATHROOM: "BATHROOM",
@@ -141,7 +151,7 @@ PROBLEM_CATEGORY_TO_BACKEND = {
     ProblemCategory.OTHER: "OTHER",
 }
 
-
+# сроки
 class Timeframe(str, Enum):
     ONE_DAY = "1 день"
     TWO_DAYS = "2 дня"
@@ -151,7 +161,7 @@ class Timeframe(str, Enum):
     TWO_WEEKS = "2 недели"
     ONE_MONTH = "1 месяц"
 
-
+# преобразование сроков для бэкенда
 TIMEFRAME_TO_BACKEND = {
     Timeframe.ONE_DAY: "ONE_DAY",
     Timeframe.TWO_DAYS: "TWO_DAYS",
@@ -162,7 +172,7 @@ TIMEFRAME_TO_BACKEND = {
     Timeframe.ONE_MONTH: "ONE_MONTH",
 }
 
-
+# преобразования типа обращения для бэкенда
 APPEAL_TYPE_TO_BACKEND = {
     AppealType.COMPLAINT: "COMPLAINT",
     AppealType.SUGGESTION: "SUGGESTION",
@@ -170,14 +180,15 @@ APPEAL_TYPE_TO_BACKEND = {
     AppealType.REQUEST: "REQUEST",
 }
 
-
+# статус обращения
 class AppealStatus(str, Enum):
-    NEW = "NEW"
-    IN_PROGRESS = "IN_PROGRESS"
-    RESOLVED = "RESOLVED"
-    REJECTED = "REJECTED"
+    NEW = "Новое"
+    IN_PROGRESS = "В обработке"
+    RESOLVED = "Решено"
+    REJECTED = "Отклонено"
 
-
+# класс для аппила 
+# единственное, что мне тут не нравится, что это захардкожено, при любом изменении на бэке надо лезть сюда и всё менять
 @dataclass
 class Appeal:
     type: AppealType
@@ -197,6 +208,7 @@ class Appeal:
     created_at: datetime = field(default_factory=datetime.now)
     status: AppealStatus = AppealStatus.NEW
 
+    # метод для преобразования обращения  в json для бэкенда
     def to_dict(self) -> Dict[str, Any]:
         data = {
             "type": enum_to_backend(self.type),
@@ -211,9 +223,11 @@ class Appeal:
             "contactEmail": self.contactEmail,
         }
 
+        # если есть айдишник
         if self.id is not None:
             data["id"] = self.id
 
+        # если надо серверные поля
         if APPEAL_SEND_SERVER_FIELDS:
             data["createdAt"] = self.created_at.isoformat()
             data["status"] = enum_to_backend(self.status)
@@ -234,19 +248,25 @@ class Appeal:
 
         return result
 
-
+# класс для результатов проверки регистрации 
 @dataclass
 class RegistrationResult:
     request_ok: bool
     registered: bool
     data: Dict[str, Any] = field(default_factory=dict)
 
-
+# -----------------
 # --- настройки ---
+# -----------------
 
 TOKEN = os.getenv("VK_TOKEN")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+KAFKA_APPEAL_STATUS_TOPIC = os.getenv("KAFKA_TOPIC_APPEAL_STATUS_CHANGED", "appeal.status.changed")
+KAFKA_CONSUMER_GROUP_ID = os.getenv("KAFKA_CONSUMER_GROUP_ID", "vk-bot-group")
+KAFKA_AUTO_OFFSET_RESET = os.getenv("KAFKA_AUTO_OFFSET_RESET", "earliest")
+KAFKA_ENABLE_AUTO_COMMIT = env_bool("KAFKA_ENABLE_AUTO_COMMIT", True)
 
-
+# функция для построения базового url для обращения к api бэкенда
 def build_api_base_url() -> str:
     base_url = os.getenv("BACKEND_BASE_URL", "http://app:8080").rstrip("/")
     api_prefix = os.getenv("BACKEND_API_PREFIX", "/api").strip("/")
@@ -270,17 +290,21 @@ def build_api_base_url() -> str:
 
     return result
 
-
+# константы для работы с бэкендом
 API_BASE_URL = build_api_base_url()
 SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://localhost:5173").rstrip("/")
 REGISTRATION_PATH = os.getenv("REGISTRATION_PATH", "/register")
+LOGIN_PATH = os.getenv("LOGIN_PATH", "/login")
 
+# формат для отправки енум в бэкенд
 APPEAL_ENUM_FORMAT = os.getenv("APPEAL_ENUM_FORMAT", "name").strip().lower()
 APPEAL_SEND_SERVER_FIELDS = env_bool("APPEAL_SEND_SERVER_FIELDS", False)
 
+# словарь для хранения access token после регистрации
 HTTP_TIMEOUT_SECONDS = float(os.getenv("HTTP_TIMEOUT_SECONDS", "10"))
 HTTP_TIMEOUT = aiohttp.ClientTimeout(total=HTTP_TIMEOUT_SECONDS)
 
+# тексты кнопок
 START_BUTTON = "Начать"
 CHECK_REGISTRATION_BUTTON = "Проверить регистрацию"
 BACK_BUTTON = "Назад"
@@ -302,6 +326,7 @@ logger.info(
     ),
 )
 
+# проверка наличия токена и создание экземпляра бота
 if not TOKEN:
     logger.critical("vk_token_missing")
     raise ValueError("токен не найден. создайте файл .env и добавьте VK_TOKEN=ваш_токен")
@@ -309,7 +334,7 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 logger.info("bot_instance_created")
 
-
+# функция для построения полного url для обращения к api бэкенда
 def api_url(path: str) -> str:
     result = f"{API_BASE_URL}/{path.lstrip('/')}"
 
@@ -322,7 +347,7 @@ def api_url(path: str) -> str:
 
     return result
 
-
+# функция для построения полного url сайта
 def site_url(path: str) -> str:
     result = f"{SITE_BASE_URL}/{path.lstrip('/')}"
 
@@ -335,8 +360,119 @@ def site_url(path: str) -> str:
 
     return result
 
+# -------------
+# --- кафка ---
+# -------------
 
+# функция для отправки сообщения если изменился статус
+async def handle_appeal_status_changed_event(event: Dict[str, Any]) -> None:
+    vk_user_id = event.get("vkUserId") or event.get("vk_user_id")
+    if vk_user_id is None:
+        logger.warning("appeal_status_event_missing_vk_user_id", extra={"event": event})
+        return
+
+    try:
+        peer_id = int(vk_user_id)
+    except (TypeError, ValueError):
+        logger.warning(
+            "appeal_status_event_invalid_vk_user_id",
+            extra={"vk_user_id": vk_user_id, "event": event},
+        )
+        return
+
+    appeal_number = event.get("appealNumber") or event.get("appeal_number") or event.get("appealId")
+        
+    old_status_raw = event.get("oldStatus") or event.get("old_status")
+    new_status_raw = event.get("newStatus") or event.get("new_status")
+
+    def get_display_status(status_str: Optional[str]) -> Optional[str]:
+        if not status_str:
+            return None
+        try:
+            return AppealStatus[status_str].value
+        except KeyError:
+            return status_str
+
+    old_status = get_display_status(old_status_raw)
+    new_status = get_display_status(new_status_raw)
+
+    if appeal_number is None:
+        appeal_number = "?"
+
+    if old_status and new_status:
+        text = f"Статус вашей заявки №{appeal_number} изменился с \"{old_status}\" на \"{new_status}\"."
+    elif new_status:
+        text = f"Статус вашей заявки №{appeal_number} изменился на \"{new_status}\"."
+    else:
+        text = f"Статус вашей заявки №{appeal_number} был обновлен."
+
+    if not TOKEN:
+        logger.warning("vk_message_send_skipped_no_token")
+        return
+
+    try:
+        await bot.api.messages.send(
+            peer_id=peer_id,
+            message=text,
+            random_id=random.randint(0, 2**31 - 1),
+        )
+        logger.info(
+            "kafka_status_notification_sent",
+            extra={"peer_id": peer_id, "message": text},
+        )
+    except Exception as error:
+        logger.error(
+            "kafka_status_notification_failed peer_id=%s error=%s",
+            peer_id,
+            error,
+        )
+
+async def kafka_listener_task() -> None:
+    try:
+        consumer = AIOKafkaConsumer(
+            KAFKA_APPEAL_STATUS_TOPIC,
+            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+            auto_offset_reset=KAFKA_AUTO_OFFSET_RESET,
+            enable_auto_commit=KAFKA_ENABLE_AUTO_COMMIT,
+            group_id=KAFKA_CONSUMER_GROUP_ID,
+            value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        )
+    except Exception as error:
+        logger.error("kafka_consumer_init_failed %s", error)
+        return
+
+    while True:
+        try:
+            logger.info(f"connecting_to_kafka | bootstrap_servers={KAFKA_BOOTSTRAP_SERVERS}")
+            await consumer.start()
+            logger.info("kafka_listener_started")
+            break  
+        except Exception as e:
+            logger.error("kafka_connection_failed | error=%s | retrying_in_5_seconds...", e)
+            await asyncio.sleep(5)  # Ждем 5 секунд и пробуем снова
+
+    try:
+        async for message in consumer:
+            try:
+                event = message.value
+                if isinstance(event, dict):
+                    await handle_appeal_status_changed_event(event)
+                else:
+                    logger.warning(
+                        "kafka_message_unexpected_value_type",
+                        extra={
+                            "value_type": type(event).__name__,
+                            "raw_value": event,
+                        },
+                    )
+            except Exception as error:
+                logger.error("kafka_message_processing_failed %s", error)
+    finally:
+        await consumer.stop()
+
+# -----------------
 # --- состояния ---
+# -----------------
 
 class AppealState(BaseStateGroup):
     WAITING_FOR_TYPE = 0
@@ -346,9 +482,11 @@ class AppealState(BaseStateGroup):
     WAITING_FOR_DESCRIPTION = 4
     WAITING_FOR_FILES = 5
 
+# ---------------
+# --- мапперы ---
+# ---------------
 
-# --- справочники ---
-
+# разные категории для разных проблем
 LOCATION_CATEGORIES: Dict[LocationType, List[ProblemCategory]] = {
     LocationType.DORMITORY: [
         ProblemCategory.ACCOMMODATION,
@@ -415,6 +553,7 @@ LOCATION_CATEGORIES: Dict[LocationType, List[ProblemCategory]] = {
     ],
 }
 
+# сроки для вывода пользователю 
 VALID_TIMEFRAMES = [
     Timeframe.ONE_DAY.value,
     Timeframe.TWO_DAYS.value,
@@ -425,6 +564,7 @@ VALID_TIMEFRAMES = [
     Timeframe.ONE_MONTH.value,
 ]
 
+# ключи, которые считаются чувствительными и не должны логироваться в открытом виде
 SENSITIVE_KEYS = {
     "description",
     "password",
@@ -461,6 +601,7 @@ SENSITIVE_KEYS = {
     "registrationUrl",
 }
 
+# текст для кнопок бота
 BUTTON_TEXTS = {
     START_BUTTON,
     CHECK_REGISTRATION_BUTTON,
@@ -490,16 +631,19 @@ BUTTON_TEXTS = {
     *VALID_TIMEFRAMES,
 }
 
-
+# --------------------------
 # --- логирующие утилиты ---
+# --------------------------
 
+
+# функция для получения состояния пользователя 
 def state_name(state: Any) -> str:
     if state is None:
         return "none"
 
     return getattr(state, "name", str(state))
 
-
+# функция для подготовки любого значения к логированию
 def to_log_value(value: Any) -> Any:
     if isinstance(value, Enum):
         return value.value
@@ -522,6 +666,9 @@ def to_log_value(value: Any) -> Any:
     return value
 
 
+# впринципе все функции ниже делают одно и тоже только для разных типов данных
+
+# функция для скрытия чувствительной информации
 def hidden_value(value: Any) -> str:
     if value is None:
         return "<none>"
@@ -531,13 +678,14 @@ def hidden_value(value: Any) -> str:
 
     return f"<hidden type={type(value).__name__}>"
 
-
+# функция для безопасного логирования пейлоада
 def safe_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not payload:
         return {}
 
     result: Dict[str, Any] = {}
 
+    # пробегаемся по ключам и смотрим на данные, если ключ чувствительный - скрываем, если нет - логируем полностью
     for key, value in payload.items():
         if value is None:
             result[key] = None
@@ -554,7 +702,7 @@ def safe_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 
     return result
 
-
+# функция для безопасного лоигрования данных пользователя
 def safe_user_data(user_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not user_data:
         return {}
@@ -567,7 +715,7 @@ def safe_user_data(user_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         "fields_count": len(user_data),
     }
 
-
+# функция для безопасноого логирования текста
 def safe_text(text: Optional[str]) -> Optional[str]:
     if text is None:
         return None
@@ -582,14 +730,14 @@ def safe_text(text: Optional[str]) -> Optional[str]:
 
     return f"<hidden length={len(normalized)}>"
 
-
+# функция для безопасного логирования тела HTTP ответа
 def safe_http_body(text: str, force: bool = False) -> str:
     if force or LOG_HTTP_BODIES or LOG_SENSITIVE_DATA:
         return text
 
     return f"<hidden length={len(text)}>"
 
-
+# функция для логирования событий с произвольными полями
 def log_event(level: int, event_name: str, **fields):
     prepared_fields = {
         key: to_log_value(value)
@@ -606,7 +754,7 @@ def log_event(level: int, event_name: str, **fields):
     else:
         logger.log(level, event_name)
 
-
+# функция для логирования исключений с произвольными полями
 def log_exception(event_name: str, **fields):
     prepared_fields = {
         key: to_log_value(value)
@@ -620,20 +768,25 @@ def log_exception(event_name: str, **fields):
     )
 
 
+# -----------------------------
+# --- основные функции бота ---
+# -----------------------------
+
+# функция для извлечения пейлоада из сообщения
 def get_state_payload(message: Message) -> Dict[str, Any]:
     if not message.state_peer:
         return {}
 
     return message.state_peer.payload or {}
 
-
+# функция для получения текущего состояния пользователя
 def get_current_state_name(message: Message) -> str:
     if not message.state_peer:
         return "none"
 
     return state_name(message.state_peer.state)
 
-
+# функция для логирования входа в обработчик с информацией о сообщении и состоянии
 def log_handler_entry(handler_name: str, message: Message):
     log_event(
         logging.INFO,
@@ -646,7 +799,7 @@ def log_handler_entry(handler_name: str, message: Message):
         payload=safe_payload(get_state_payload(message)),
     )
 
-
+# функция для отправки ответа пользователю
 async def send_answer(
     message: Message,
     text: str,
@@ -666,13 +819,14 @@ async def send_answer(
 
     await message.answer(text, keyboard=keyboard)
 
-
+# фукнция для изменения состояния у пользователя
 async def set_state(
     message: Message,
     new_state: Any,
     reason: str,
     **payload,
 ):
+    # получаем старое состояние
     old_state = get_current_state_name(message)
 
     log_event(
@@ -686,6 +840,7 @@ async def set_state(
         payload=safe_payload(payload),
     )
 
+    # ставим новое состояние с пейлоадом
     await bot.state_dispenser.set(message.peer_id, new_state, **payload)
 
     log_event(
@@ -696,11 +851,12 @@ async def set_state(
         new_state=state_name(new_state),
     )
 
-
+# функция для удаления состояния у пользователя
 async def delete_state(
     message: Message,
     reason: str,
 ):
+    # берём старое состояние и пейлоад для логирования
     old_state = get_current_state_name(message)
     old_payload = safe_payload(get_state_payload(message))
 
@@ -714,6 +870,7 @@ async def delete_state(
         old_payload=old_payload,
     )
 
+    # удаляем состояние
     await bot.state_dispenser.delete(message.peer_id)
 
     log_event(
@@ -723,9 +880,7 @@ async def delete_state(
         peer_id=message.peer_id,
     )
 
-
-# --- утилиты ---
-
+# функция для получения вк юзер айди
 def get_vk_user_id(message: Message) -> int:
     vk_user_id = int(message.from_id or message.peer_id)
 
@@ -739,7 +894,7 @@ def get_vk_user_id(message: Message) -> int:
 
     return vk_user_id
 
-
+# функция для добавления аргументов к ссылке
 def add_query_params(url: str, params: Dict[str, Any]) -> str:
     parsed = urlparse(url)
     current_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
@@ -757,7 +912,7 @@ def add_query_params(url: str, params: Dict[str, Any]) -> str:
 
     return result
 
-
+# функция для создания ссылки на  регистрацию с вк юзер айди
 def get_registration_url(vk_user_id: int) -> str:
     result = add_query_params(
         site_url(REGISTRATION_PATH),
@@ -773,7 +928,22 @@ def get_registration_url(vk_user_id: int) -> str:
 
     return result
 
+def get_login_url(vk_user_id: int) -> str:
+    result = add_query_params(
+        site_url(LOGIN_PATH),
+        {"vkUserId": vk_user_id},
+    )
 
+    log_event(
+        logging.INFO,
+        "login_url_created",
+        vk_user_id=vk_user_id,
+        login_url=result if LOG_SENSITIVE_DATA else site_url(LOGIN_PATH),
+    )
+
+    return result
+
+# функция для преобразования енум в строку для бэка
 def enum_to_backend(value: Optional[Enum]) -> Optional[str]:
     if value is None:
         return None
@@ -795,7 +965,7 @@ def enum_to_backend(value: Optional[Enum]) -> Optional[str]:
 
     return value.name
 
-
+# функция для извлечения енум из пейлоада
 def enum_from_payload(enum_cls, value, default):
     if isinstance(value, enum_cls):
         log_event(
@@ -838,7 +1008,7 @@ def enum_from_payload(enum_cls, value, default):
 
         return default
 
-
+# функция для получения категорий проблем для локации
 def get_categories_for_location(location: LocationType) -> List[ProblemCategory]:
     categories = LOCATION_CATEGORIES.get(location, [ProblemCategory.OTHER])
 
@@ -851,7 +1021,7 @@ def get_categories_for_location(location: LocationType) -> List[ProblemCategory]
 
     return categories
 
-
+# функция для проверки валидности описания проблемы
 def is_valid_description(text: Optional[str]) -> bool:
     result = bool(text and len(text.strip()) >= 5)
 
@@ -864,7 +1034,7 @@ def is_valid_description(text: Optional[str]) -> bool:
 
     return result
 
-
+# функция для нормализации логических значений из разных форматов
 def normalize_bool(value: Any) -> Optional[bool]:
     if isinstance(value, bool):
         log_event(
@@ -904,7 +1074,7 @@ def normalize_bool(value: Any) -> Optional[bool]:
 
     return None
 
-
+# функция для получения первого непустого значения из словаря по списку ключей
 def get_first_present(data: Dict[str, Any], *keys: str) -> Optional[str]:
     for key in keys:
         value = data.get(key)
@@ -929,7 +1099,7 @@ def get_first_present(data: Dict[str, Any], *keys: str) -> Optional[str]:
 
     return None
 
-
+# функция для извлечения данных пользователя из разных возможных оберток
 def unwrap_user_data(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(data, dict):
         log_event(
@@ -959,10 +1129,10 @@ def unwrap_user_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
     return data
 
-
+# функция для скачивания файла по URL и возвращает base64-encoded строку с MIME типом
 async def download_and_encode_file(url: str, filename: str) -> Optional[str]:
-    """Скачивает файл по URL и возвращает base64-encoded строку с MIME типом"""
     try:
+        # пытаемся скачать файл с помощью aiohttp и установить таймаут, чтобы не зависать на медленных ответах
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
             async with session.get(url) as response:
                 if response.status != 200:
@@ -973,11 +1143,10 @@ async def download_and_encode_file(url: str, filename: str) -> Optional[str]:
                         status=response.status,
                     )
                     return None
-
+                # если скачали успешно, читаем содержимое и определяем MIME тип из заголовков
                 content = await response.read()
                 content_type = response.headers.get('Content-Type', 'application/octet-stream')
-
-                # Создаем data URL
+                
                 base64_content = base64.b64encode(content).decode('utf-8')
                 data_url = f"data:{content_type};base64,{base64_content}"
 
@@ -1002,8 +1171,9 @@ async def download_and_encode_file(url: str, filename: str) -> Optional[str]:
         )
         return None
 
-
+# функция для получения флага регистрации из данных, проверяя несколько возможных ключей
 def get_registration_flag_from_dict(data: Dict[str, Any]) -> Optional[bool]:
+    # несколько вариантов ключей
     for key in ("exists", "registered", "isRegistered", "success"):
         if key in data:
             parsed = normalize_bool(data.get(key))
@@ -1027,7 +1197,7 @@ def get_registration_flag_from_dict(data: Dict[str, Any]) -> Optional[bool]:
 
     return None
 
-
+# функция для построения полного имени пользователя из разных возможных полей
 def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
     explicit_name = get_first_present(
         user_data,
@@ -1049,11 +1219,17 @@ def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
         )
         return explicit_name
 
-    name_parts = [
-        user_data.get("lastname") or user_data.get("lastName") or user_data.get("last_name"),  # добавлено lastname для UserResponseDto
-        user_data.get("firstname") or user_data.get("firstName") or user_data.get("first_name"),  # добавлено firstname для UserResponseDto
-        user_data.get("middlename") or user_data.get("middleName") or user_data.get("middle_name"),  # добавлено middlename для UserResponseDto
-    ]
+    if user_data.get("middlename") or user_data.get("middleName") or user_data.get("middle_name"):
+        name_parts = [
+            user_data.get("lastname") or user_data.get("lastName") or user_data.get("last_name"),
+            user_data.get("firstname") or user_data.get("firstName") or user_data.get("first_name"),
+            user_data.get("middlename") or user_data.get("middleName") or user_data.get("middle_name"),
+        ]
+    else:
+        name_parts = [
+            user_data.get("lastname") or user_data.get("lastName") or user_data.get("last_name"),
+            user_data.get("firstname") or user_data.get("firstName") or user_data.get("first_name"),
+        ]
 
     full_name = " ".join(str(part).strip() for part in name_parts if part)
 
@@ -1068,10 +1244,10 @@ def build_full_name(user_data: Dict[str, Any]) -> Optional[str]:
 
     return full_name or None
 
-
+# функция для получения контакной информации
 def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
     user_data = unwrap_user_data(user_data)
-
+    # проверка на согласие на обработку пд
     consent = True
 
     for key in (
@@ -1091,7 +1267,7 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
         user_data,
         "contact_email",
         "contactEmail",
-        "email",  # добавлено для UserResponseDto
+        "email",  
         "mail",
         "contact",
         "contactLink",
@@ -1127,9 +1303,70 @@ def get_user_contact_fields(user_data: Dict[str, Any]) -> Dict[str, Any]:
 
     return result
 
-
+# -----------
 # --- api ---
+# -----------
 
+# функция для получения профиля пользователя с бэкенда
+async def get_user_profile(vk_user_id: int) -> Optional[Dict[str, Any]]:
+    # Берем токен из кэша
+    access_token = access_tokens.get(vk_user_id)
+    
+    if not access_token:
+        log_event(
+            logging.WARNING,
+            "get_user_profile_no_access_token",
+            vk_user_id=vk_user_id,
+        )
+        return None
+
+    url = api_url("/user/me")
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    log_event(
+        logging.INFO,
+        "get_user_profile_started",
+        vk_user_id=vk_user_id,
+        url=url,
+    )
+
+    try:
+        async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    log_event(
+                        logging.WARNING,
+                        "get_user_profile_failed",
+                        vk_user_id=vk_user_id,
+                        status=response.status,
+                        body=safe_http_body(error_text, force=LOG_ERROR_HTTP_BODIES),
+                    )
+                    return None
+                
+                payload = await read_response_payload(response)
+                
+                log_event(
+                    logging.INFO,
+                    "get_user_profile_success",
+                    vk_user_id=vk_user_id,
+                    data=safe_user_data(payload),
+                )
+                
+                return payload
+
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        log_exception(
+            "get_user_profile_exception",
+            vk_user_id=vk_user_id,
+            url=url,
+        )
+        return None
+
+# функция для чтения пейлоада 
 async def read_response_payload(response: aiohttp.ClientResponse) -> Any:
     text = (await response.text()).strip()
 
@@ -1180,7 +1417,7 @@ async def read_response_payload(response: aiohttp.ClientResponse) -> Any:
         )
         return text
 
-
+# функция для парсинга пейлоада после регистрации (по сути просто проверка, что всё ок)
 def parse_registration_payload(payload: Any, vk_user_id: Optional[int] = None) -> RegistrationResult:
     log_event(
         logging.DEBUG,
@@ -1230,7 +1467,7 @@ def parse_registration_payload(payload: Any, vk_user_id: Optional[int] = None) -
         if registered is None:
             registered = bool(user_data)
 
-        # Извлекаем и сохраняем access token
+        # если зареган и из вк юзер айди есть, то сохраняем токен для дальнейших запросов от имени пользователя
         if vk_user_id and registered:
             access_token = payload.get("accessToken")
             if access_token:
@@ -1272,7 +1509,7 @@ def parse_registration_payload(payload: Any, vk_user_id: Optional[int] = None) -
 
     return result
 
-
+# функция для проверки регистрации 
 async def check_user_registration(vk_user_id: int) -> RegistrationResult:
     url = api_url("/user/check")
 
@@ -1284,6 +1521,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
     )
 
     try:
+        # делаем запрос к бэкенду с вк юзер айди 
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.get(
                 url,
@@ -1341,7 +1579,7 @@ async def check_user_registration(vk_user_id: int) -> RegistrationResult:
             data={},
         )
 
-
+# функция для отправки жалобы в бэкенд
 async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
     url = api_url("/appeals")
     body = appeal.to_dict()
@@ -1356,8 +1594,7 @@ async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
         problemCategory=appeal.problemCategory,
         body=safe_payload(body),
     )
-
-    # Получаем access token для пользователя
+    # аццесс токен из словаря для нашего конкретного юзера
     access_token = access_tokens.get(appeal.vkUserId)
     if not access_token:
         log_event(
@@ -1366,7 +1603,6 @@ async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
             vk_user_id=appeal.vkUserId,
         )
 
-    # Подготавливаем заголовки
     headers = {
         "Accept": "application/json",
     }
@@ -1374,6 +1610,7 @@ async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
         headers["Authorization"] = f"Bearer {access_token}"
 
     try:
+        # пытаемся отправить аппил на бэк
         async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
             async with session.post(
                 url,
@@ -1391,7 +1628,7 @@ async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
                     body=safe_http_body(response_text),
                     body_length=len(response_text),
                 )
-
+                # если всё ок, то получаем номер жалобы и потом отправляем юзеру
                 if response.status in (200, 201):
                     appeal_number = None
                     try:
@@ -1433,7 +1670,7 @@ async def send_to_backend(appeal: Appeal) -> Tuple[bool, Optional[int]]:
         )
         return False, None
 
-
+# функция для сохранения жалобы в бд через бэкенд
 async def save_appeal_to_db(appeal: Appeal) -> Tuple[bool, Optional[int]]:
     log_event(
         logging.INFO,
@@ -1454,7 +1691,7 @@ async def save_appeal_to_db(appeal: Appeal) -> Tuple[bool, Optional[int]]:
 
     return result, appeal_number
 
-
+# функция для построения объекта жалобы из пейлоада и данных профиля
 async def build_appeal_from_payload(
     payload: Dict[str, Any],
     vk_user_id: int,
@@ -1465,7 +1702,7 @@ async def build_appeal_from_payload(
         vk_user_id=vk_user_id,
         payload=safe_payload(payload),
     )
-
+    # проверяем регистрацию юзера
     registration = await check_user_registration(vk_user_id)
 
     if not registration.request_ok or not registration.registered:
@@ -1476,9 +1713,18 @@ async def build_appeal_from_payload(
             request_ok=registration.request_ok,
             registered=registration.registered,
         )
-
         return None, registration
 
+    # получаем профиль пользователя по токену
+    user_profile_data = await get_user_profile(vk_user_id)
+    
+    # если профиль получить не удалось, подстраховываемся данными из регистрации
+    contact_source_data = user_profile_data if user_profile_data else registration.data
+
+    # получаем контактные данные из профиля
+    user_fields = get_user_contact_fields(contact_source_data)
+
+    # тут потихоньку всё собирается 
     appeal_type = enum_from_payload(
         AppealType,
         payload.get("type"),
@@ -1502,7 +1748,8 @@ async def build_appeal_from_payload(
         payload.get("timeframe"),
         None,
     )
-
+    
+    # у предложения, запроса и вопроса нет локации и категории проблемы
     if appeal_type != AppealType.COMPLAINT:
         if campusLocation is None:
             campusLocation = LocationType.STUDENT_CAMPUS
@@ -1510,20 +1757,18 @@ async def build_appeal_from_payload(
         if problemCategory is None:
             problemCategory = ProblemCategory.OTHER
 
-    user_fields = get_user_contact_fields(registration.data)
-
     appeal = Appeal(
         type=appeal_type,
         description=str(payload.get("description", "")).strip(),
-        personalDataConsent=user_fields["personalDataConsent"],
+        personalDataConsent=user_fields.get("personalDataConsent", True),
         vkUserId=vk_user_id,
         campusLocation=campusLocation,
         problemCategory=problemCategory,
         timeframe=timeframe,
         attachments=payload.get("attachments", []),
-        contactName=user_fields["contactName"],
-        contactPhone=user_fields["contactPhone"],
-        contactEmail=user_fields["contactEmail"],
+        contactName=user_fields.get("contactName"),
+        contactPhone=user_fields.get("contactPhone"),
+        contactEmail=user_fields.get("contactEmail"),
     )
 
     log_event(
@@ -1538,9 +1783,11 @@ async def build_appeal_from_payload(
 
     return appeal, registration
 
-
+# ------------------
 # --- клавиатуры ---
+# ------------------
 
+# клавиатура для проверки регистрации (после приветственного сообщения)
 def get_registration_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="registration")
 
@@ -1550,7 +1797,7 @@ def get_registration_kb():
         .get_json()
     )
 
-
+# клавиатура для начального меню
 def get_start_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="start")
 
@@ -1562,7 +1809,7 @@ def get_start_kb():
         .get_json()
     )
 
-
+# клавиатура для выбора типа обращения
 def get_type_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="type")
 
@@ -1572,34 +1819,34 @@ def get_type_kb():
         .add(Text(AppealType.SUGGESTION.value), color=KeyboardButtonColor.POSITIVE)
         .row()
         .add(Text(AppealType.QUESTION.value), color=KeyboardButtonColor.PRIMARY)
-        .add(Text(AppealType.REQUEST.value), color=KeyboardButtonColor.SECONDARY)
+        .add(Text(AppealType.REQUEST.value), color=KeyboardButtonColor.PRIMARY)
         .row()
-        .add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.NEGATIVE)
+        .add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.SECONDARY)
         .get_json()
     )
 
-
+# клавиатура для навигации назад и отмены
 def get_navigation_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="navigation")
 
     return (
         Keyboard(one_time=True)
         .add(Text(BACK_BUTTON), color=KeyboardButtonColor.SECONDARY)
-        .add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.NEGATIVE)
+        .add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.SECONDARY)
         .get_json()
     )
 
-
+# функция для добавления навигационных кнопок к существующей клавиатуре
 def add_navigation(kb: Keyboard) -> Keyboard:
     log_event(logging.DEBUG, "keyboard_navigation_added")
 
     kb.row()
     kb.add(Text(BACK_BUTTON), color=KeyboardButtonColor.SECONDARY)
-    kb.add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.NEGATIVE)
+    kb.add(Text(CANCEL_BUTTON), color=KeyboardButtonColor.SECONDARY)
 
     return kb
 
-
+# клавиатура для выбора локации
 def get_location_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="location")
 
@@ -1623,7 +1870,7 @@ def get_location_kb():
 
     return add_navigation(kb).get_json()
 
-
+# клавиатура для выбора категории проблемы, зависит от ранее выбранной локации
 def get_category_kb(location: LocationType):
     categories = get_categories_for_location(location)
 
@@ -1645,7 +1892,7 @@ def get_category_kb(location: LocationType):
 
     return add_navigation(kb).get_json()
 
-
+# клавиатура для выбора временного интервала, зависит от типа обращения (для жалобы показывается, для остальных нет)
 def get_timeframe_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="timeframe")
 
@@ -1669,38 +1916,40 @@ def get_timeframe_kb():
 
     return add_navigation(kb).get_json()
 
-
+# клавиатура для управления добавлением файлов
 def get_files_kb():
     log_event(logging.DEBUG, "keyboard_created", keyboard="files")
 
     return (
         Keyboard(one_time=False)
         .add(Text("Пропустить"), color=KeyboardButtonColor.SECONDARY)
-        .add(Text(BACK_BUTTON), color=KeyboardButtonColor.NEGATIVE)
+        .add(Text(BACK_BUTTON), color=KeyboardButtonColor.SECONDARY)
         .get_json()
     )
 
-
+# -------------------
 # --- регистрация ---
+# -------------------
 
-verified_users: set[int] = set()
-registration_intro_sent_users: set[int] = set()
-registration_check_locks: Dict[int, asyncio.Lock] = {}
-processed_registration_check_messages: set[tuple] = set()
-processed_registration_check_message_order: List[tuple] = []
+# кеш для хранения информации о верифицированных пользователях
+verified_users: set[int] = set() # множество проверенных пользователей
+registration_intro_sent_users: set[int] = set() # множество юзеров, которым отправуили приветственное сообщение
+registration_check_locks: Dict[int, asyncio.Lock] = {} # словарь локов для каждого юзера, чтобы избежать гонок при одновременной проверке регистрации
+processed_registration_check_messages: set[tuple] = set() # множество обработанных сообщений при проверке регистрации
+processed_registration_check_message_order: List[tuple] = [] # порядок обработки сообщений при проверке регистрации
 PROCESSED_REGISTRATION_CHECK_LIMIT = 1000
 
 # Хранилище access tokens для каждого пользователя
 access_tokens: Dict[int, str] = {}
 
-
+# функция для получения асинхронного локера для конкретного пользователя, чтобы избежать гонок (одновременных обращений к бд) при одновременной проверке регистрации
 def get_registration_check_lock(vk_user_id: int) -> asyncio.Lock:
     if vk_user_id not in registration_check_locks:
         registration_check_locks[vk_user_id] = asyncio.Lock()
 
     return registration_check_locks[vk_user_id]
 
-
+# функция для генерации ключа для дедупликации сообщений при проверке регистрации, чтобы избежать повторной обработки одного и того же сообщения из-за нескольких событий или обновлений
 def get_message_dedup_key(message: Message) -> tuple:
     return (
         message.peer_id,
@@ -1710,10 +1959,11 @@ def get_message_dedup_key(message: Message) -> tuple:
         (message.text or "").strip(),
     )
 
-
+# функция для отметки сообщения как обработанного при проверке регистрации и проверки на дубликаты, чтобы избежать повторной обработки одного и того же сообщения
 def mark_registration_check_message(message: Message) -> bool:
     key = get_message_dedup_key(message)
-
+    # если ключ уже есть в множестве обработанных сообщений, то это дубликат и мы пропускаем его, иначе добавляем в множество и продолжаем обработку. 
+    # Также поддерживаем порядок обработки сообщений, чтобы не превышать лимит и не держать слишком много ключей в памяти. 
     if key in processed_registration_check_messages:
         log_event(
             logging.WARNING,
@@ -1726,7 +1976,7 @@ def mark_registration_check_message(message: Message) -> bool:
 
     processed_registration_check_messages.add(key)
     processed_registration_check_message_order.append(key)
-
+    # если количество обработанных сообщений превышает лимит, то удаляем самые старые ключи из множества и порядка, чтобы не держать слишком много данных в памяти
     while len(processed_registration_check_message_order) > PROCESSED_REGISTRATION_CHECK_LIMIT:
         old_key = processed_registration_check_message_order.pop(0)
         processed_registration_check_messages.discard(old_key)
@@ -1749,12 +1999,13 @@ log_event(
     registration_intro_sent_users_count=len(registration_intro_sent_users),
 )
 
-
+# функция для отправки интро
 async def send_registration_intro(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_intro_sent_users.add(vk_user_id)
 
     registration_url = get_registration_url(vk_user_id)
+    login_url = get_login_url(vk_user_id)
 
     log_event(
         logging.INFO,
@@ -1768,10 +2019,10 @@ async def send_registration_intro(message: Message):
     text = (
         "Добро пожаловать в модуль «Предложалоба».\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
-        f"Ссылка на регистрацию:\n{registration_url}\n\n"
+        f"Ссылка на регистрацию:\n\n{registration_url}\n\n"
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n\n{login_url}\n\n" 
         "После регистрации нажмите «Проверить регистрацию»."
-    )
-
+        )   
     await send_answer(
         message,
         text,
@@ -1779,10 +2030,11 @@ async def send_registration_intro(message: Message):
         event="registration_intro",
     )
 
-
+# функция для отправки сообщения о необходимости регистрации, если пользователь не зарегистрирован
 async def send_registration_required(message: Message):
     vk_user_id = get_vk_user_id(message)
     registration_url = get_registration_url(vk_user_id)
+    login_url = get_login_url(vk_user_id)
 
     log_event(
         logging.INFO,
@@ -1796,6 +2048,7 @@ async def send_registration_required(message: Message):
         "Регистрация не найдена.\n\n"
         "Перед отправкой обращения нужно зарегистрироваться на сайте.\n\n"
         f"Ссылка на регистрацию:\n{registration_url}\n\n"
+        f"Если вы уже зарегистрированы на сайте, то привяжите свою учетную запись к VK по следующей ссылке:\n{login_url}\n\n" 
         "После регистрации нажмите «Проверить регистрацию»."
     )
 
@@ -1806,7 +2059,7 @@ async def send_registration_required(message: Message):
         event="registration_required",
     )
 
-
+# функция для отправки сообщения об ошибке при проверке регистрации
 async def send_registration_error(message: Message):
     log_event(
         logging.ERROR,
@@ -1822,7 +2075,8 @@ async def send_registration_error(message: Message):
         event="registration_error",
     )
 
-
+# функция для проверки регистрации пользователя и управления потоком в зависимости от результата, 
+# включая отправку соответствующих сообщений и начало процесса подачи жалобы, если регистрация подтверждена
 async def require_registered(message: Message) -> Optional[RegistrationResult]:
     vk_user_id = get_vk_user_id(message)
 
@@ -1834,7 +2088,7 @@ async def require_registered(message: Message) -> Optional[RegistrationResult]:
     )
 
     result = await check_user_registration(vk_user_id)
-
+    # если ошибка 
     if not result.request_ok:
         log_event(
             logging.ERROR,
@@ -1845,7 +2099,7 @@ async def require_registered(message: Message) -> Optional[RegistrationResult]:
 
         await send_registration_error(message)
         return None
-
+    # если не зареган
     if not result.registered:
         verified_users.discard(vk_user_id)
 
@@ -1859,7 +2113,7 @@ async def require_registered(message: Message) -> Optional[RegistrationResult]:
 
         await send_registration_required(message)
         return None
-
+    #  если зареган
     verified_users.add(vk_user_id)
 
     log_event(
@@ -1872,7 +2126,7 @@ async def require_registered(message: Message) -> Optional[RegistrationResult]:
 
     return result
 
-
+# функция для начала потока подачи жалобы после подтверждения регистрации
 async def start_appeal_flow(message: Message):
     log_event(
         logging.INFO,
@@ -1880,7 +2134,7 @@ async def start_appeal_flow(message: Message):
         peer_id=message.peer_id,
         vk_user_id=get_vk_user_id(message),
     )
-
+    # ставим состояние ожидания типа
     await set_state(
         message,
         AppealState.WAITING_FOR_TYPE,
@@ -1894,7 +2148,8 @@ async def start_appeal_flow(message: Message):
         event="appeal_flow_started",
     )
 
-
+# функция для обработки нажатия кнопки проверки регистрации, включая дедупликацию сообщений, 
+# управление асинхронным доступом к проверке регистрации для одного пользователя и отправку соответствующих сообщений в зависимости от результата проверки
 async def process_registration_check(message: Message) -> bool:
     vk_user_id = get_vk_user_id(message)
 
@@ -2005,9 +2260,11 @@ async def process_registration_check(message: Message) -> bool:
         await start_appeal_flow(message)
         return True
 
-
+# -----------------
 # --- навигация ---
+# -----------------
 
+# декоратор для обработки навигационных кнопок "Назад" и "Отмена" в любом месте потока подачи жалобы
 def handle_navigation(func):
     @wraps(func)
     async def wrapper(message: Message, *args, **kwargs):
@@ -2069,7 +2326,7 @@ def handle_navigation(func):
 
     return wrapper
 
-
+# функция для обработки нажатия кнопки "Назад" в зависимости от текущего состояния потока подачи жалобы
 async def back_action(message: Message):
     log_handler_entry("back_action", message)
 
@@ -2210,15 +2467,19 @@ async def back_action(message: Message):
         event="back_to_type_fallback",
     )
 
-
+# -------------------
 # --- обработчики ---
+# -------------------
+# впринципе у обработчиков простая логика и она видна по коду, потому не буду её расписывать
+# единственное что - локация, категория и время только для жалобы, всё остальное только тип и описание
 
+# обработчик для кнопки проверки регистрации
 @bot.on.message(text=[CHECK_REGISTRATION_BUTTON])
 async def check_registration_handler(message: Message):
     log_handler_entry("check_registration_handler", message)
     await process_registration_check(message)
 
-
+# обработчик для начального сообщения
 @bot.on.message(text=[START_BUTTON, "Привет", "предложалоба", "Предложалоба"])
 async def start_handler(message: Message):
     log_handler_entry("start_handler", message)
@@ -2273,7 +2534,7 @@ async def start_handler(message: Message):
 
     await send_registration_intro(message)
 
-
+# обработчик для выбора типа обращения
 @bot.on.message(state=AppealState.WAITING_FOR_TYPE)
 async def type_handler(message: Message):
     log_handler_entry("type_handler", message)
@@ -2439,7 +2700,7 @@ async def type_handler(message: Message):
         event="type_invalid_input",
     )
 
-
+# обработчик для локации
 @bot.on.message(state=AppealState.WAITING_FOR_LOCATION)
 @handle_navigation
 async def location_handler(message: Message):
@@ -2492,7 +2753,7 @@ async def location_handler(message: Message):
         event="category_requested",
     )
 
-
+# обработчик для категории
 @bot.on.message(state=AppealState.WAITING_FOR_CATEGORY)
 @handle_navigation
 async def category_handler(message: Message):
@@ -2602,7 +2863,7 @@ async def category_handler(message: Message):
         event="description_requested",
     )
 
-
+# обработчик для сроков
 @bot.on.message(state=AppealState.WAITING_FOR_TIMEFRAME)
 @handle_navigation
 async def timeframe_handler(message: Message):
@@ -2653,7 +2914,7 @@ async def timeframe_handler(message: Message):
         event="description_requested",
     )
 
-
+# обработчик для описания
 @bot.on.message(state=AppealState.WAITING_FOR_DESCRIPTION)
 @handle_navigation
 async def description_handler(message: Message):
@@ -2762,7 +3023,7 @@ async def description_handler(message: Message):
         event="files_step_started",
     )
 
-
+# обработчик для файлов
 @bot.on.message(state=AppealState.WAITING_FOR_FILES)
 @handle_navigation
 async def files_handler(message: Message):
@@ -2780,7 +3041,6 @@ async def files_handler(message: Message):
             vk_user_id=get_vk_user_id(message),
         )
 
-        # Переходим к сохранению обращения без файлов
         await finalize_appeal(message, payload)
         return
 
@@ -2807,7 +3067,6 @@ async def files_handler(message: Message):
         )
         return
 
-    # Обработка вложений
     attachments = payload.get("attachments", [])
     new_attachments = []
 
@@ -2924,12 +3183,10 @@ async def files_handler(message: Message):
             event="files_processing_failed",
         )
 
-
+# функция для финализации обращения 
 async def finalize_appeal(message: Message, payload: Dict[str, Any]):
-    """Финализация и отправка обращения"""
     vk_user_id = get_vk_user_id(message)
 
-    # Добавляем attachments в payload если их нет
     if "attachments" not in payload:
         payload["attachments"] = []
 
@@ -2985,7 +3242,7 @@ async def finalize_appeal(message: Message, payload: Dict[str, Any]):
         return
 
     saved, appeal_number = await save_appeal_to_db(appeal)
-    appeal_number_text = f"\nНомер заявки: {appeal_number}" if appeal_number is not None else ""
+    appeal_number_text = f"\nНомер заявки: №{appeal_number}" if appeal_number is not None else ""
 
     if not saved:
         log_event(
@@ -3051,9 +3308,9 @@ async def finalize_appeal(message: Message, payload: Dict[str, Any]):
             event="request_saved_success",
         )
 
-
+# ----------------------------
 # --- резервный обработчик ---
-
+# ----------------------------
 @bot.on.message()
 async def fallback_handler(message: Message):
     log_handler_entry("fallback_handler", message)
@@ -3121,5 +3378,6 @@ if __name__ == "__main__":
         appeal_enum_format=APPEAL_ENUM_FORMAT,
     )
 
+    bot.loop_wrapper.add_task(kafka_listener_task())
     print("бот «предложалоба» запущен")
     bot.run_forever()

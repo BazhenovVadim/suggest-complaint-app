@@ -1,5 +1,6 @@
 package ru.it.solutions.suggest.complaint.app.model.dto.appeal;
 
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.enums.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,12 +23,9 @@ public class AppealResponseDto {
     private Timeframe timeframe;
     private String description;
     private List<String> attachments;
-    private String contactName;
-    private String contactPhone;
-    private String contactEmail;
     private Boolean personalDataConsent;
     private Instant createdAt;
     private AppealStatus status;
-    private UUID userId;
+    private UserResponseDto user;
     private long appealNumber;
 }

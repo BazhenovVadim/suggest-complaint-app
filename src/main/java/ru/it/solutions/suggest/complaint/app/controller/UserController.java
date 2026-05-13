@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.it.solutions.suggest.complaint.app.model.dto.user.UserBotCheckResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.user.UserResponseDto;
 import ru.it.solutions.suggest.complaint.app.model.dto.user.UserRoleUpdateDto;
+import ru.it.solutions.suggest.complaint.app.model.dto.user.UserSocialLinkRequestDto;
 import ru.it.solutions.suggest.complaint.app.service.UserService;
 import ru.it.solutions.suggest.complaint.app.service.auth.CustomUserDetails;
 import ru.it.solutions.suggest.complaint.app.service.auth.JWTService;
@@ -33,13 +34,28 @@ public class UserController {
         if (vkUserId == null && tgUserId == null) {
             return ResponseEntity.badRequest().build();
         }
-        UserResponseDto exists = vkUserId != null
-                ? userService.existsByVkUserId(vkUserId)
-                : userService.existsByTelegramUserId(tgUserId);
+        UserResponseDto user = vkUserId != null
+                ? userService.findByVkUserId(vkUserId).orElse(null)
+                : userService.findByTelegramUserId(tgUserId).orElse(null);
 
-        String registrationUrl = exists == null ? null : userService.buildRegistrationLink(vkUserId, tgUserId);
-        String accessToken = exists == null ? null : jwtService.generateAccessToken(exists.getId(), exists.getEmail());
-        return ResponseEntity.ok(new UserBotCheckResponseDto(true, registrationUrl, exists, accessToken));
+        String registrationUrl = user == null ? userService.buildRegistrationLink(vkUserId, tgUserId) : null;
+        String accessToken = user == null ? null : jwtService.generateAccessToken(user.getId(), user.getEmail());
+        return ResponseEntity.ok(new UserBotCheckResponseDto(user != null, registrationUrl, user, accessToken));
+    }
+
+    @PatchMapping("/me/social")
+    public ResponseEntity<UserResponseDto> linkSocialAccount(@AuthenticationPrincipal CustomUserDetails currentUser,
+                                                             @RequestBody UserSocialLinkRequestDto request) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        if (request.vkUserId() != null) {
+            return ResponseEntity.ok(userService.linkVkUser(currentUser.getId(), request.vkUserId()));
+        } else if (request.telegramUserId() != null) {
+            return ResponseEntity.ok(userService.linkTgUser(currentUser.getId(), request.telegramUserId()));
+        }else {
+            return ResponseEntity.status(404).build();
+        }
     }
 
     @PatchMapping("/{id}/role")

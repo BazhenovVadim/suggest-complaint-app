@@ -33,10 +33,6 @@ public class AppealCreateDto {
     @Builder.Default
     private List<String> attachments = new ArrayList<>();
 
-    private String contactName;
-    private String contactPhone;
-    private String contactEmail;
-
     @NotNull(message = "Необходимо согласие на обработку персональных данных")
     private Boolean personalDataConsent;
 }

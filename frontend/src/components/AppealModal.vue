@@ -24,7 +24,7 @@ import Button from "@/components/Button.vue";
 
 const props = defineProps({
     modelValue: { type: Boolean, required: true },
-    appeal: { type: Object, required: true },
+    appeal: { type: [Object, null], required: true },
     showActions: { type: Boolean, default: false },
     actionLabel: { type: String, default: "" },
     showReject: { type: Boolean, default: false },
@@ -77,9 +77,11 @@ const displayTimeframe = computed(() =>
 
 const fullDescription = computed(() => props.appeal?.description ?? "");
 
-const displayContactName = computed(() => props.appeal?.contactName ?? "");
-const displayContactPhone = computed(() => props.appeal?.contactPhone ?? "");
-const displayContactEmail = computed(() => props.appeal?.contactEmail ?? "");
+const displayContactName = computed(
+    () => props.appeal?.user?.firstName + " " + props.appeal?.user?.lastName ?? ""
+);
+const displayContactPhone = computed(() => props.appeal?.user?.contactPhone ?? "");
+const displayContactEmail = computed(() => props.appeal?.user?.email ?? "");
 
 const created = computed(() => props.appeal?.createdAt ?? null);
 const dateParts = computed(() => {

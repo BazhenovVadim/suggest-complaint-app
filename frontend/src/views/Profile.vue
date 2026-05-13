@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import api from "@/api.js";
 import { useUserStore } from "@/stores/user.js";
 import {
@@ -16,6 +16,7 @@ import AppealItem from "@/components/AppealItem.vue";
 import AppealModal from "@/components/AppealModal.vue";
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const activeTab = ref("active");
@@ -41,6 +42,9 @@ const activeWidth = ref(0);
 const hoverLeft = ref(0);
 const hoverWidth = ref(0);
 const isHovering = ref(false);
+
+const showVkSuccess = ref(false);
+const showTgSuccess = ref(false);
 
 const tabsStyle = computed(() => ({
     "--indicator-left": activeLeft.value + "px",
@@ -86,7 +90,7 @@ const logout = async () => {
 };
 
 onMounted(async () => {
-    try {
+try {
         const response = await api.getAppeals();
         appeals.value = response.data;
     } catch (e) {
@@ -96,6 +100,35 @@ onMounted(async () => {
     await nextTick();
     updateIndicator();
     window.addEventListener("resize", updateIndicator);
+
+    let shouldReplaceUrl = false;
+    const newQuery = { ...route.query };
+
+    if (route.query.vkLinked === 'true') {
+        setTimeout(() => {
+            showVkSuccess.value = true;
+            setTimeout(() => {
+                showVkSuccess.value = false;
+            }, 4000);
+        }, 500);
+        
+        delete newQuery.vkLinked;
+        shouldReplaceUrl = true;
+    }
+
+    if (route.query.tgLinked === 'true') {
+        setTimeout(() => {
+            showTgSuccess.value = true;
+            setTimeout(() => showTgSuccess.value = false, 4000);
+        }, 500);
+        
+        delete newQuery.tgLinked;
+        shouldReplaceUrl = true;
+    }
+
+    if (shouldReplaceUrl) {
+        router.replace({ query: newQuery });
+    }
 });
 
 watch(activeTab, () => {
@@ -223,13 +256,13 @@ watch(searchQuery, () => {
     <main class="profile">
         <aside class="sidebar" aria-label="Профиль">
             <div class="brand">
-                <img src="@/assets/prof.jpg" class="logo" />
+                <img src="@/assets/prof_profile.jpg" class="logo" />
             </div>
 
             <div class="user">
                 <IconMdiAccountCircle class="avatar" />
                 <div class="user-info">
-                    <div class="name">{{ userStore.profile.firstname + " " + userStore.profile.lastname }}</div>
+                    <div class="name">{{ userStore.profile.firstName + " " + userStore.profile.lastName }}</div>
                     <div class="email">{{ userStore.profile.email }}</div>
                     <button class="logout" @click="logout">Выйти</button>
                 </div>
@@ -239,6 +272,22 @@ watch(searchQuery, () => {
         </aside>
 
         <section class="main">
+            <Transition name="notification" appear>
+                <div v-if="showVkSuccess" class="vk-success-notification">
+                    <div class="notification-content">
+                        <i class="fa-brands fa-vk"></i>
+                        <span>Аккаунт ВКонтакте успешно привязан!</span>
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="notification" appear>
+                <div v-if="showTgSuccess" class="tg-success-notification">
+                    <div class="notification-content">
+                        <i class="fa-brands fa-telegram"></i>
+                        <span>Аккаунт Telegram успешно привязан!</span>
+                    </div>
+                </div>
+            </Transition>
             <header class="main-header">
                 <h1 class="title">Заявки</h1>
                 <div class="header-actions">
@@ -374,6 +423,7 @@ watch(searchQuery, () => {
     flex: 1 1 auto;
     padding: 28px 36px;
     box-sizing: border-box;
+    min-width: 0;
 }
 
 .main-header {
@@ -404,6 +454,7 @@ watch(searchQuery, () => {
     border: 1px solid var(--color-border, #e6e6e6);
     font-family: var(--font-text);
     font-weight: 500;
+    box-sizing: border-box;
 }
 
 .btn-new-appeal {
@@ -420,6 +471,7 @@ watch(searchQuery, () => {
     cursor: pointer;
     white-space: nowrap;
     transition: opacity 0.2s ease;
+    box-sizing: border-box;
 }
 
 .btn-new-appeal:hover {
@@ -457,6 +509,7 @@ watch(searchQuery, () => {
     font-size: 20px;
     color: var(--color-text, #222);
     position: relative;
+    white-space: nowrap;
 }
 
 .tab:hover {
@@ -509,6 +562,7 @@ watch(searchQuery, () => {
 .empty {
     padding: 40px 16px;
     color: var(--color-font);
+    text-align: center;
 }
 
 .appeals {
@@ -548,25 +602,220 @@ watch(searchQuery, () => {
     background: var(--color-accent, #cfeee0);
 }
 
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.notification-content i {
+    font-size: 20px;
+}
+
+.notification-enter-from {
+    opacity: 0;
+    transform: translate(-50%, -100%);
+}
+
+
+.notification-enter-active,
+.notification-leave-active {
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.notification-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -100%);
+}
+
+.vk-success-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background: #4c75a3;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.tg-success-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    background: #2AABEE;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
 @media (max-width: 1024px) {
+    .profile {
+        flex-direction: column;
+    }
+
     .sidebar {
+        width: 100%;
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border, #e6e6e6);
+    }
+
+    .brand {
+        margin-bottom: 0;
+    }
+
+    .logo {
+        max-width: 110px;
+    }
+
+    .sidebar-spacer {
         display: none;
     }
 
-    .profile {
-        display: block;
+    .user {
+        gap: 10px;
     }
+
+    .avatar {
+        width: 44px;
+    }
+
+    .user-info {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-info .name,
+    .user-info .email {
+        display: none;
+    }
+
 
     .main {
         padding: 16px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .header-actions .search {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+
+    .btn-new-appeal {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
     }
 
     .tabs {
-        overflow-x: auto;
+        display: flex;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .tab {
+        flex: 1 1 50%;
+        text-align: center;
+        font-size: 14px;
+        padding: 12px 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .pagination {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .pager {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .table-headers {
         display: none;
+    }
+
+    :deep(.appeal-row) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px;
+    }
+
+    :deep(.appeal-row .col) {
+        width: 100%;
+    }
+
+    :deep(.appeal-row .status) {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 8px;
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+    }
+
+    :deep(.appeal-row .btn-outline) {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+    }
+
+    :deep(.appeal-row .excerpt) {
+        background: #f9f9f9;
+        padding: 10px;
+        border-radius: 8px;
+        display: -webkit-box;
+        line-clamp: 3;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 }
 

@@ -12,6 +12,7 @@ import FileUpload from "@/components/FileUpload.vue";
 import Checkbox from "@/components/Checkbox.vue";
 import Toggle from "@/components/Toggle.vue";
 import ProfileMenu from "@/components/ProfileMenu.vue";
+import PrivacyModal from "@/components/PrivacyModal.vue";
 
 const userStore = useUserStore();
 
@@ -68,6 +69,7 @@ const successMessage = ref("");
 const message = ref("");
 const attachments = ref([]);
 const consent = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 watch(selectedLocation, () => {
     errorMessage.value = "";
@@ -118,8 +120,8 @@ const handleSubmit = async () => {
 
     try {
         // Get profile data
-        const profileData = localStorage.getItem('userProfile');
-        const profile = profileData ? JSON.parse(profileData) : {};
+        const profile = userStore.profile;
+        const fullName = profile.firstName + " " + profile.lastName
 
         const appealData = {
             type: selectedType.value,
@@ -131,9 +133,6 @@ const handleSubmit = async () => {
                 selectedType.value === "COMPLAINT" ? selectedCategory.value : "OTHER",
             timeframe: selectedTimeframe.value || null,
             description: message.value.trim(),
-            contactName: profile.fullName || '',
-            contactPhone: profile.phone || '',
-            contactEmail: profile.email || '',
             personalDataConsent: consent.value,
         };
 
@@ -206,13 +205,23 @@ const handleSubmit = async () => {
                 </div>
             </div>
             <div class="submit">
-                <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
+                <div class="consent-wrapper">
+                    <Checkbox v-model="consent">
+                        Я согласен на обработку
+                        <a href="/privacy" class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
+                            персональных данных
+                        </a>
+                    </Checkbox>
+                </div>
                 <Button :disabled="!consent" @click="handleSubmit">Отправить обращение</Button>
             </div>
             <p v-if="successMessage" class="success-msg">{{ successMessage }}</p>
             <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
         </div>
-        <footer>Ну футер там и т.д.</footer>
+        <footer class="footer">
+            Ну футер там и т.д.
+        </footer>
+        <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
     </main>
 </template>
 
@@ -344,6 +353,25 @@ p.restrictions {
 
 footer {
     margin-top: 35px;
+}
+
+.consent-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.privacy-link {
+    font-size: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--color-accent);
+}
+
+.privacy-link:hover {
+    text-decoration: underline;
 }
 
 @media (min-width: 768px) {

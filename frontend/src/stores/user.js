@@ -109,11 +109,18 @@ export const useUserStore = defineStore("user", {
     async fetchMe() {
       const res = await api.getMe();
       this.profile = res.data;
+      localStorage.setItem('profile', JSON.stringify(res.data));
       // Если getMe возвращает роль, стоит обновить ее тут
       if (res.data.userRole || res.data.role) {
         this.userRole = res.data.userRole || res.data.role;
         localStorage.setItem('userRole', this.userRole);
       }
+    },
+
+    async linkSocialAccount(data) {
+      const response = await api.linkSocialAccount(data);
+      this.saveAuthTokens({ profile: response.data });
+      return response.data;
     },
 
     async initAuth() {

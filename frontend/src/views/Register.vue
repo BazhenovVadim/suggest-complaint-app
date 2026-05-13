@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useUserStore } from "@/stores/user";
 
@@ -9,6 +9,7 @@ import MdiEyeOff from "~icons/mdi/eye-off";
 import Input from "@/components/Input.vue";
 import Button from "@/components/Button.vue";
 import Checkbox from "@/components/Checkbox.vue";
+import PrivacyModal from "@/components/PrivacyModal.vue";
 
 const email = ref("");
 const password = ref("");
@@ -20,36 +21,47 @@ const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 
-const firstname = ref("");
-const lastname = ref("");
-const middlename = ref("");
+const firstName = ref("");
+const lastName = ref("");
+const middleName = ref("");
 const phone = ref("");
 
 const isEmailError = ref(false);
 const isEmailShaking = ref(false);
 const isPasswordError = ref(false);
 const isPasswordShaking = ref(false);
-const isFirstnameError = ref(false);
-const isFirstnameShaking = ref(false);
-const isLastnameError = ref(false);
-const isLastnameShaking = ref(false);
-const isMiddlenameError = ref(false);
-const isMiddlenameShaking = ref(false);
+const isFirstNameError = ref(false);
+const isFirstNameShaking = ref(false);
+const isLastNameError = ref(false);
+const isLastNameShaking = ref(false);
+const isMiddleNameError = ref(false);
+const isMiddleNameShaking = ref(false);
 const isPhoneError = ref(false);
 const isPhoneShaking = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const isPrivacyModalOpen = ref(false);
 
 const Icons = {
     eye: MdiEye,
     eyeOff: MdiEyeOff,
 };
 
+const vkUserId = computed(() => route.query.vkUserId);
+const tgUserId = computed(() => route.query.tgUserId);
+const hasVkBinding = computed(() => Boolean(vkUserId.value));
+const hasTgBinding = computed(() => Boolean(tgUserId.value));
+const loginRoute = computed(() => ({
+    path: "/login",
+    query: hasVkBinding.value ? { vkUserId: vkUserId.value } : {},
+    query: hasTgBinding.value ? { tgUserId: tgUserId.value } : {}
+}));
+
 watch(email, () => { isEmailError.value = false; error.value = ""; });
 watch([password, confirmPassword], () => { isPasswordError.value = false; error.value = ""; });
-watch(firstname, () => { isFirstnameError.value = false; error.value = ""; });
-watch(lastname, () => { isLastnameError.value = false; error.value = ""; });
-watch(middlename, () => { isMiddlenameError.value = false; error.value = ""; });
+watch(firstName, () => { isFirstNameError.value = false; error.value = ""; });
+watch(lastName, () => { isLastNameError.value = false; error.value = ""; });
+watch(middleName, () => { isMiddleNameError.value = false; error.value = ""; });
 watch(phone, () => { error.value = ""; });
 
 
@@ -65,21 +77,21 @@ const triggerError = (field, msg) => {
         isPasswordShaking.value = false;
         setTimeout(() => isPasswordShaking.value = true, 10);
         setTimeout(() => isPasswordShaking.value = false, 600);
-    } else if (field === 'lastname') {
-        isLastnameError.value = true;
-        isLastnameShaking.value = false;
-        setTimeout(() => isLastnameShaking.value = true, 10);
-        setTimeout(() => isLastnameShaking.value = false, 600);
-    } else if (field === 'firstname') {
-        isFirstnameError.value = true;
-        isFirstnameShaking.value = false;
-        setTimeout(() => isFirstnameShaking.value = true, 10);
-        setTimeout(() => isFirstnameShaking.value = false, 600);
-    } else if (field === 'middlename') {
-        isMiddlenameError.value = true;
-        isMiddlenameShaking.value = false;
-        setTimeout(() => isMiddlenameShaking.value = true, 10);
-        setTimeout(() => isMiddlenameShaking.value = false, 600);
+    } else if (field === 'lastName') {
+        isLastNameError.value = true;
+        isLastNameShaking.value = false;
+        setTimeout(() => isLastNameShaking.value = true, 10);
+        setTimeout(() => isLastNameShaking.value = false, 600);
+    } else if (field === 'firstName') {
+        isFirstNameError.value = true;
+        isFirstNameShaking.value = false;
+        setTimeout(() => isFirstNameShaking.value = true, 10);
+        setTimeout(() => isFirstNameShaking.value = false, 600);
+    } else if (field === 'middleName') {
+        isMiddleNameError.value = true;
+        isMiddleNameShaking.value = false;
+        setTimeout(() => isMiddleNameShaking.value = true, 10);
+        setTimeout(() => isMiddleNameShaking.value = false, 600);
     } else if (field === 'phone') {
         isPhoneError.value = true;
         isPhoneShaking.value = false;
@@ -92,7 +104,10 @@ const triggerError = (field, msg) => {
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const validatePassword = (password) => /^(?=.*[0-9])(?=.*[A-Z]).{8,}$/.test(password);
 const validateName = (name) => /^[а-яА-ЯёЁa-zA-Z\s]+$/.test(name);
-const validatePhone = (phone) => /^\+?[0-9\s()-]{7,20}$/.test(phone);
+const validatePhone = (phone) => {
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    return /^(?:\+7|8)\d{10}$/.test(cleaned);
+};
 
 const handleSubmit = async () => {
 
@@ -101,27 +116,27 @@ const handleSubmit = async () => {
         return;
     }
 
-    if (!lastname.value.trim()) {
-        triggerError('lastname', "Введите фамилию");
+    if (!lastName.value.trim()) {
+        triggerError('lastName', "Введите фамилию");
         return;
     }
 
-    if (!validateName(lastname.value)) {
-        triggerError('lastname', "Фамилия должна содержать только буквы");
+    if (!validateName(lastName.value)) {
+        triggerError('lastName', "Фамилия должна содержать только буквы");
         return;
     }
 
-    if (!firstname.value.trim()) {
-        triggerError('firstname', "Введите имя");
+    if (!firstName.value.trim()) {
+        triggerError('firstName', "Введите имя");
         return;
     }
 
-    if (!validateName(firstname.value)) {
-        triggerError('firstname', "Имя должно содержать только буквы");
+    if (!validateName(firstName.value)) {
+        triggerError('firstName', "Имя должно содержать только буквы");
         return;
     }
-    if (middlename.value && !validateName(middlename.value)) {
-        triggerError('middlename', "Отчество должно содержать только буквы");
+    if (middleName.value && !validateName(middleName.value)) {
+        triggerError('middleName', "Отчество должно содержать только буквы");
         return;
     }
 
@@ -151,25 +166,34 @@ const handleSubmit = async () => {
     const registerData = {
         email: email.value,
         password: password.value,
-        firstname: firstname.value,
-        lastname: lastname.value,
-        middlename: middlename.value,
-        phone: phone.value
+        firstName: firstName.value,
+        lastName: lastName.value,
+        middleName: middleName.value,
+        phoneNumber: phone.value
     };
 
-    const vkUserId = route.query.vkUserId;
-    const tgUserId = route.query.tgUserId;
-
-    if (vkUserId) {
-        registerData.vk_user_id = vkUserId;
+    if (vkUserId.value) {
+        registerData.vk_user_id = vkUserId.value;
     }
 
-    if (tgUserId) {
-        registerData.telegram_user_id = tgUserId;
+    if (tgUserId.value) {
+        registerData.telegram_user_id = tgUserId.value;
     }
 
     try {
+        loading.value = true;
         await userStore.register(registerData);
+
+        let vkLinked = false;
+        let tgLinked = false;
+
+        if (hasVkBinding.value) {
+            vkLinked = true;
+        }
+
+        if (tgUserId.value) {
+            tgLinked = true;
+        }
 
         // Save profile data locally
         // const profileData = {
@@ -182,7 +206,14 @@ const handleSubmit = async () => {
         // };
 
         await userStore.login({ email: email.value, password: password.value });
-        router.push(userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile");
+        const targetPath = userStore.userRole === "ADMIN" ? "/admin-profile" : "/profile";
+        router.push({
+            path: targetPath,
+            query: {
+                ...(vkLinked ? { vkLinked: 'true' } : {}),
+                ...(tgLinked ? { tgLinked: 'true' } : {})
+            }
+        });
     } catch (err) {
         error.value = `Ошибка: ${err.response?.data?.message || "Неизвестная ошибка"}`;
     } finally {
@@ -197,23 +228,29 @@ const handleSubmit = async () => {
             <router-link to="/" class="back-home">← На главную</router-link>
             <img src="@/assets/prof.jpg" class="logo" alt="Логотип" />
             <h1>Регистрация</h1>
+            <p v-if="hasVkBinding" class="link-notice">
+                Зарегистрируйтесь или войдите в существующий аккаунт, чтобы привязать VK.
+            </p>
+            <p v-if="hasTgBinding" class="link-notice">
+                Зарегистрируйтесь или войдите в существующий аккаунт, чтобы привязать Telegram.
+            </p>
             <form class="form" @submit.prevent="handleSubmit" novalidate>
                 <div class="field-group">
                     <h2>Фамилия</h2>
-                    <Input class="lastname" :class="{ 'input-error': isLastnameError, 'shake': isLastnameShaking }"
-                        v-model="lastname" placeholder="Фамилия" required />
+                    <Input class="lastName" :class="{ 'input-error': isLastNameError, 'shake': isLastNameShaking }"
+                        v-model="lastName" placeholder="Фамилия" required />
                 </div>
 
                 <div class="field-group">
                     <h2>Имя</h2>
-                    <Input class="firstname" :class="{ 'input-error': isFirstnameError, 'shake': isFirstnameShaking }"
-                        v-model="firstname" placeholder="Имя" required />
+                    <Input class="firstname" :class="{ 'input-error': isFirstNameError, 'shake': isFirstNameShaking }"
+                        v-model="firstName" placeholder="Имя" required />
                 </div>
 
                 <div class="field-group">
                     <h2>Отчество <span class="optional">(если есть)</span></h2>
-                    <Input class="middlename"
-                        :class="{ 'input-error': isMiddlenameError, 'shake': isMiddlenameShaking }" v-model="middlename"
+                    <Input class="middleName"
+                        :class="{ 'input-error': isMiddleNameError, 'shake': isMiddleNameShaking }" v-model="middleName"
                         placeholder="Отчество" />
                 </div>
 
@@ -260,8 +297,15 @@ const handleSubmit = async () => {
                     </div>
                 </div>
 
-                <Checkbox v-model="consent" label="Я согласен на обработку персональных данных" />
-
+                <div class="consent-wrapper">
+                    <Checkbox v-model="consent">
+                        Я согласен на обработку
+                        <a class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
+                            персональных данных
+                        </a>
+                    </Checkbox>
+                </div>
+                <PrivacyModal v-model:isOpen="isPrivacyModalOpen" />
 
                 <Button type="submit" :disabled="loading || !consent">
                     Зарегистрироваться
@@ -272,7 +316,7 @@ const handleSubmit = async () => {
 
             <div class="toggle-login">
                 Уже есть аккаунт?
-                <router-link to="/login"> Войти </router-link>
+                <router-link :to="loginRoute"> Войти </router-link>
             </div>
         </div>
     </main>
@@ -368,9 +412,9 @@ const handleSubmit = async () => {
 .email,
 .password,
 .confirm-password,
-.firstname,
-.lastname,
-.middlename {
+.firstName,
+.lastName,
+.middleName {
     width: 100%;
 }
 
@@ -432,6 +476,13 @@ a:hover {
     margin: 0;
 }
 
+.link-notice {
+    color: var(--color-main-inverted);
+    text-align: center;
+    max-width: 420px;
+    margin: 0;
+}
+
 .input-error {
     border-radius: 4;
     box-shadow: 0 0 5px rgba(211, 47, 47, 0.5);
@@ -447,6 +498,25 @@ a:hover {
 
 .shake {
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.consent-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.privacy-link {
+    font-size: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--color-accent);
+}
+
+.privacy-link:hover {
+    text-decoration: underline;
 }
 
 @keyframes shake {

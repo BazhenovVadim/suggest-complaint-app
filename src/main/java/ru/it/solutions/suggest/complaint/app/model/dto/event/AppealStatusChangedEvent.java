@@ -11,6 +11,7 @@ public record AppealStatusChangedEvent(
         Long appealNumber,
         UUID userId,
         String vkUserId,
+        String telegramUserId,
         String oldStatus,
         String newStatus,
         Instant changedAt
