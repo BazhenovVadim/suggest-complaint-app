@@ -208,7 +208,7 @@ const handleSubmit = async () => {
                 <div class="consent-wrapper">
                     <Checkbox v-model="consent">
                         Я согласен на обработку
-                        <a class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
+                        <a href="/privacy" class="privacy-link" @click.left.prevent="isPrivacyModalOpen = true">
                             персональных данных
                         </a>
                     </Checkbox>
