@@ -181,7 +181,7 @@ const badgeClass = computed(() => {
 .appeal-row {
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: 60px 140px 220px minmax(150px, 1fr) 140px 160px 330px;
+    grid-template-columns: 50px minmax(100px, 1.1fr) minmax(140px, 1.6fr) minmax(150px, 2fr) minmax(120px, 1.3fr) 90px minmax(220px, 260px);
     gap: 12px;
     align-items: start;
     width: 100%;
@@ -272,7 +272,7 @@ const badgeClass = computed(() => {
 
 .status {
     display: flex;
-    gap: 30px;
+    gap: 12px;
     align-items: center;
     justify-content: space-between;
 }

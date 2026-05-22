@@ -113,7 +113,7 @@ onMounted(async () => {
                 showVkSuccess.value = false;
             }, 4000);
         }, 500);
-        
+
         delete newQuery.vkLinked;
         shouldReplaceUrl = true;
     }
@@ -123,7 +123,7 @@ onMounted(async () => {
             showTgSuccess.value = true;
             setTimeout(() => showTgSuccess.value = false, 4000);
         }, 500);
-        
+
         delete newQuery.tgLinked;
         shouldReplaceUrl = true;
     }
@@ -893,7 +893,7 @@ watch(searchQuery, () => {
 @media (min-width: 1025px) {
     .table-headers {
         display: grid;
-        grid-template-columns: 60px 140px 220px minmax(150px, 1fr) 140px 160px 330px;
+        grid-template-columns: 50px minmax(100px, 1.1fr) minmax(140px, 1.6fr) minmax(150px, 2fr) minmax(120px, 1.3fr) 90px minmax(220px, 260px);
         gap: 12px;
         font-weight: 600;
         padding: 0 18px;
